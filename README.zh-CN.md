@@ -1,5 +1,9 @@
 # VLA SFT in Practice
 
+![Blog — Coming soon](https://img.shields.io/badge/Blog-Coming%20soon-3B82F6?style=flat-square&logo=rss&logoColor=white&labelColor=334155)
+![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
+![Checkpoints — Coming soon](https://img.shields.io/badge/Checkpoints-Coming%20soon-F59E0B?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
+
 **Robbyant 具身智能挑战赛技术报告配套代码**
 
 [English](README.md) | 简体中文
