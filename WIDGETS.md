@@ -21,7 +21,7 @@
 
 4. Publish `index.html` and the existing `assets/` directory to GitHub Pages. Confirm the widget requests succeed on the final HTTPS address and that the provider's statistics correspond to that address.
 
-The MapMyVisitors URL is initially empty. Until it is supplied, the page shows “Visitor statistics are not available yet”; no example counts or borrowed visitor map are displayed. Provider loading failures display a short message and do not affect the report's charts or language switch.
+MapMyVisitors is configured for [the published report](https://yzmyalier.github.io/Lingbot-Challenge-SST/) using its generated Map widget URL. If the URL is cleared, the page shows “Visitor statistics are not available yet”; no example counts or borrowed visitor map are displayed. Provider loading failures display a short message and do not affect the report's charts or language switch.
 
 ## Update the local page
 
