@@ -1,6 +1,6 @@
 # VLA SFT in Practice
 
-![Blog — Coming soon](https://img.shields.io/badge/Blog-Coming%20soon-3B82F6?style=flat-square&logo=rss&logoColor=white&labelColor=334155)
+[![Blog](https://img.shields.io/badge/Blog-3B82F6?style=flat-square&logo=rss&logoColor=white)](https://yzmyalier.github.io/Lingbot-Challenge-SST/)
 ![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 ![Checkpoints — Coming soon](https://img.shields.io/badge/Checkpoints-Coming%20soon-F59E0B?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 
@@ -16,7 +16,7 @@ This repository contains the data processing, training, and evaluation code for 
 
 | Resource | Status |
 |---|---|
-| Project page and technical report | Public URL to be added |
+| Project page and technical report | [Blog](https://yzmyalier.github.io/Lingbot-Challenge-SST/) |
 | Repaired LeRobot data and precomputed SAM masks | Download links to be added after full validation and upload |
 | Trained checkpoints | Release link to be added separately |
 

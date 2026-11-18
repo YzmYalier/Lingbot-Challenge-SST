@@ -1,6 +1,6 @@
 # VLA SFT in Practice
 
-![Blog — Coming soon](https://img.shields.io/badge/Blog-Coming%20soon-3B82F6?style=flat-square&logo=rss&logoColor=white&labelColor=334155)
+[![Blog](https://img.shields.io/badge/Blog-3B82F6?style=flat-square&logo=rss&logoColor=white)](https://yzmyalier.github.io/Lingbot-Challenge-SST/)
 ![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 ![Checkpoints — Coming soon](https://img.shields.io/badge/Checkpoints-Coming%20soon-F59E0B?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 
@@ -16,7 +16,7 @@
 
 | 资源 | 状态 |
 |---|---|
-| 项目主页与技术报告 | 待补充公开链接 |
+| 项目主页与技术报告 | [Blog](https://yzmyalier.github.io/Lingbot-Challenge-SST/) |
 | 修复后的 LeRobot 数据与预计算 SAM mask | 全量校验和上传完成后补充下载链接 |
 | 训练后的 checkpoint | 单独发布后补充链接 |
 
