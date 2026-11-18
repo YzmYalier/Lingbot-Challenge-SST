@@ -1,0 +1,4 @@
+# CPU-only preparation of the pinned RoboTwin episode mapping and instructions.
+numpy==2.5.5
+pyarrow==24.0.0
+h5py==3.16.0

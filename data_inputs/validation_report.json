@@ -1,0 +1,110 @@
+{
+  "created_utc": "2026-11-18T08:11:04.197752+00:00",
+  "complete_inputs": true,
+  "episodes": 2500,
+  "frames": 548893,
+  "ordered_seen_slots": 250000,
+  "source_reader_check": "Executed the existing Source.task_name, Source.seen_instructions and Source.instructions methods for every episode; compared ordered seen lists with original public JSON bytes. GPU-dependent module initialization was not executed.",
+  "offline_checks": [
+    {
+      "command": [
+        "bash",
+        "prepare_data_inputs.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": "{\n  \"episodes\": 2500,\n  \"seen_slots\": 250000,\n  \"instruction_files\": 2500\n}"
+    },
+    {
+      "command": [
+        "bash",
+        "process_data.sh",
+        "--stage",
+        "inputs",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": "{\n  \"episodes\": 2500,\n  \"seen_slots\": 250000,\n  \"instruction_files\": 2500\n}"
+    },
+    {
+      "command": [
+        "bash",
+        "prepare_data_inputs.sh"
+      ],
+      "exit_code": 0,
+      "output": "{\n  \"episodes\": 2500,\n  \"seen_slots\": 250000,\n  \"instruction_files\": 2500\n}"
+    }
+  ],
+  "logic_tests": {
+    "input_preparation": 13,
+    "shared_sam_prompt": 4,
+    "passed": true
+  },
+  "entrypoint_previews": [
+    {
+      "command": [
+        "bash",
+        "prepare_data_inputs.sh",
+        "--dry-run"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "bash",
+        "process_data.sh",
+        "--stage",
+        "inputs",
+        "--dry-run"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "bash",
+        "process_data.sh",
+        "--dry-run"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "bash",
+        "eval.sh",
+        "--dry-run"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "training_config_check": "make_plan with NPROC_PER_NODE=8; all configured submission paths resolved; no GPU launched",
+  "cpu_dependencies": {
+    "python": "3.12.13",
+    "numpy": "2.5.5",
+    "pyarrow": "24.0.0",
+    "h5py": "3.16.0"
+  },
+  "source_sha256": {
+    "tools/prepare_data_inputs.py": "9e9ff15a6170b177bceaef11401f9fee081a49d73d98061f10a7b85866a80d65",
+    "tools/remote_zip.py": "f792cccfbf16b5e4c5d106380176ddeb451f960888f37237ac611476aee7b3bd",
+    "tools/process_data.py": "9500dabce04a3324ef800eb895cef800adce1e6b3fe2fe3639922fae6cc7a1f5",
+    "tools/setup_envs.py": "9c091d7a165c2a32cba5a8c6424085db0b08f471ea48db81c36d445a99332c95",
+    "submit_paths.py": "54eba6bc6f094acf1c8cc21040d7de9c42a818875f1b1e20532967bea656d689",
+    "tools/evaluation_config.py": "df6e18a008613e7870d8a0521fa3c713fa4a8a23d9bf23602cc945628eb7d6cc",
+    "tests/test_prepare_data_inputs.py": "bc1c9bfaecac5db5bbc23468e6d79cb1ba362c87fa274f2b51276b454ab96aa7",
+    "auto_mask/pipeline_lerobot.py": "d5c3d7aeb52d72e98c48f4bf7e7066895e80ee34e28f1a78f12da7a40076b005",
+    "vllm_space/sam3_prompt.py": "6ad30de63b9de0d9fb5ff77584a3386d20d0bd3fb3c63c653e785193ad8e40b7"
+  },
+  "input_metadata_sha256": {
+    "mapping": "e0be2a6ce8e895a4f9ac950106043c17eb21cc3cb46d1f6dd34e064a517e79fd",
+    "checkpoint_sam_info": "037f7f462987090920decc1fabf74b53b542d884d49b9b820459e47f10ac5ab0",
+    "input_sources_manifest": "6455c5da471bec559a699558fc4352ad94cc2ea0839238b578165092c2261319",
+    "input_preparation_report": "be243ba8475edaee210df9c33a89fd1faa6e124d473e550c24d46f5dda20f9ab"
+  },
+  "limitations": [
+    "No complete GPU mask generation, VLA training or RoboTwin evaluation was run.",
+    "Model weights, full LeRobot ZIPs, GPU environments, vLLM source, FFmpeg/graphics libraries and simulator assets still require preparation.",
+    "Recovered inputs are verified against the pinned public dataset, not against unavailable historical submission files."
+  ],
+  "temporary_http_cache_removed": true,
+  "temporary_http_cache_removed_bytes": 26530106748
+}

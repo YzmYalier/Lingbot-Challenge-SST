@@ -1,0 +1,133 @@
+# RoboTwin end-effector DELTA actions (action_space: ee + action_type: rel).
+#
+# The relative counterpart of robotwin_ee.yaml. Both read RoboTwin_lerobot_v30_ee,
+# whose `observation.state` / `action` are the 16-dim EE vectors:
+#
+#     0: 3   left  ee xyz
+#     3: 7   left  ee quaternion (wxyz)
+#     7: 8   left  gripper
+#     8:11   right ee xyz
+#    11:15   right ee quaternion (wxyz)
+#    15:16   right gripper
+#
+# Resolved by lingbotvla.data.vla_data.utils.resolve_robot_config_path with
+# ('ee', 'rel'). Training and the deploy server both go through that helper, so a
+# run cannot be served with the absolute config by accident.
+#
+# Why each field is what it is:
+#
+#   action.end.position: subtract_state True
+#       Makes FeatureTransform.apply compute the relative pose at load time and
+#       unapply recover the absolute pose at inference, so the model sees deltas
+#       while RoboTwin still receives absolute EE targets. The dataset itself is
+#       unchanged -- it is the same parquet the absolute config reads.
+#
+#   action.end.position: relative_type quaternion_world
+#       Unlike the joint configs (which need a PLAIN type such as 'world'), EE
+#       poses want the quaternion branch: it composes rotations properly instead
+#       of subtracting quaternion components, which is not a valid rotation
+#       difference. `quaternion_world` keeps translation as a plain world-frame
+#       difference (`pa - ps`) and only composes the rotation (`Rs^T @ Ra`).
+#
+#       `quaternion_local` is the alternative: it additionally expresses the
+#       translation in the current EE frame (`Rs^T @ (pa - ps)`). That can help a
+#       policy generalise across table positions, but it couples the translation
+#       target to the rotation estimate, and its statistics differ from the
+#       absolute run's xyz. `world` is the conservative default; switching means
+#       regenerating norm stats.
+#
+#   action.effector.position: subtract_state False
+#       The gripper stays absolute in a relative run. It cannot be subtractive
+#       (`get_feature_mapping` asserts this for effector features), and a binary
+#       open/close command has no meaningful delta from its own current value.
+#
+#   quat_convention: wxyz
+#       REQUIRED here, and the one silent failure mode of this file.
+#       `lingbotvla/data/vla_data/ee_pose_transform.py` works in XYZW (its
+#       `quat_canonicalize` treats q[..., 3] as the scalar). RoboTwin is WXYZ.
+#       FeatureTransform.apply/unapply convert at the boundary based on this key.
+#
+#       If it were wrong (or omitted, since the default is 'xyzw' for backwards
+#       compatibility), NOTHING would raise: the relative->absolute round trip is
+#       self-consistent under either reading, so the only symptom is a policy
+#       trained on geometrically wrong rotation deltas. Verified numerically: with
+#       a 0.35 rad rotation difference, reading WXYZ as XYZW yields the relative
+#       rotation [-0.153, 0, -0.083, 0.985] where the truth is
+#       [0.985, 0, 0, 0.174], and under `quaternion_local` the translation delta
+#       comes out axis-permuted and sign-flipped.
+#
+#   norm_stats: assets/norm_stats/robotwin_ee_rel.json
+#       Must be computed against THIS config. Reusing the absolute
+#       robotwin_ee.json would normalize small deltas against the absolute pose
+#       range -- orders of magnitude too wide -- and collapse them towards zero
+#       with no error raised. Regenerate with (from the repository root):
+#
+#         bash train.sh scripts/compute_norm_stats.py \
+#           ./configs/vla/norm_compute/post_data.yaml \
+#           --data.data_name robotwin \
+#           --data.train_path /mnt/data/liangjiaqi/yzm/RoboTwinData/lerobot_dataset/RoboTwin_lerobot_v30_ee \
+#           --data.robot_config_root ./configs/robot_configs \
+#           --data.action_space ee \
+#           --data.action_type rel \
+#           --data.norm_path assets/norm_stats/robotwin_ee_rel.json
+#
+#       Both `--data.action_space ee` and `--data.action_type rel` are REQUIRED:
+#       the robot config is resolved before FeatureTransform could infer anything,
+#       so omitting either reads a different file and silently accumulates the
+#       wrong statistics. The script logs the resolved pair and the
+#       `subtract_state` map so the log shows what actually happened.
+
+states:
+  - observation.state.end.position:
+      origin_keys:
+        - observation.state:
+            start: 0
+            end: 7
+        - observation.state:
+            start: 8
+            end: 15
+
+  - observation.state.effector.position:
+      origin_keys:
+        - observation.state:
+            start: 7
+            end: 8
+        - observation.state:
+            start: 15
+            end: 16
+
+actions:
+  - action.end.position:
+      origin_keys:
+        - action:
+            start: 0
+            end: 7
+        - action:
+            start: 8
+            end: 15
+      # Relative EE target: rotation composed, translation differenced.
+      subtract_state: True
+      relative_type: quaternion_world
+
+  - action.effector.position:
+      origin_keys:
+        - action:
+            start: 7
+            end: 8
+        - action:
+            start: 15
+            end: 16
+      # Gripper stays absolute even in a relative run.
+      subtract_state: False
+
+images:
+  - observation.images.camera_top:
+      origin_keys: observation.images.cam_high
+  - observation.images.camera_wrist_left:
+      origin_keys: observation.images.cam_left_wrist
+  - observation.images.camera_wrist_right:
+      origin_keys: observation.images.cam_right_wrist
+
+quat_convention: wxyz
+
+norm_stats: assets/norm_stats/robotwin_ee_rel.json

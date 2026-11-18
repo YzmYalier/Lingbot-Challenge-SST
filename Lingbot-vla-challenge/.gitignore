@@ -1,0 +1,59 @@
+# Python caches and local build products
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+develop-eggs/
+eggs/
+*.egg-info/
+pip-wheel-metadata/
+.eggs/
+
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+
+# Test, type-checking and notebook caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# Training logs, TensorBoard and W&B local files
+*.log
+log.txt
+runs/
+wandb/
+output/
+checkpoints/
+trace/
+
+# Local checkpoints and temporary smoke-test outputs
+*.ckpt
+*.pt
+*.pth
+.tmp_*
+tmp/
+
+# Local editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Per-run Warp/curobo JIT kernel caches created by script.sh (~70 MB each).
+.warp_cache/

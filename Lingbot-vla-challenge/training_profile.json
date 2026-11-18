@@ -1,0 +1,4 @@
+{
+  "name": "fix/module-lr-wrist-aug-data-integrity",
+  "config": "configs/vla/robotwin/robotwin_v30_formal_abs_sam_judge_0.1_multi_rawteacher_modlr_wristaug_datafix.yaml"
+}

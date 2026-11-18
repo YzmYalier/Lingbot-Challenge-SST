@@ -1,0 +1,28 @@
+{
+  "mode": "multi",
+  "format": "objects-judge-v1",
+  "prompt_version": "robotwin-sam3-v3.5",
+  "style": {
+    "name": "outline",
+    "outside_scale": 0.1,
+    "edge_width": 2,
+    "edge_color": [255, 255, 255]
+  },
+  "judge": {
+    "model": "Qwen/Qwen3.8-27B",
+    "threshold": 0.5,
+    "outside_scale": 0.2,
+    "upscale": 2,
+    "regrow": 2.0,
+    "regrow_min_area": 0.002
+  },
+  "sam3": {
+    "score_threshold_detection": 0.3,
+    "new_det_thresh": 0.5
+  },
+  "provenance": {
+    "kind": "reconstructed_from_recipe",
+    "recipe": "tools/run_full_sam.py",
+    "note": "Configuration reconstructed from the maintained recipe; not a recovered historical metadata file or a completed-dataset report."
+  }
+}

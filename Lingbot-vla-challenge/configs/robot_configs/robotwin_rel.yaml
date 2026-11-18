@@ -1,0 +1,121 @@
+# RoboTwin joint-space DELTA actions (data.action_space: joint + data.action_type: rel).
+#
+# This is the relative counterpart of robotwin.yaml. The two differ in exactly
+# one place -- `subtract_state` on action.arm.position -- plus the norm stats
+# they point at, because deltas and absolute joint angles have completely
+# different distributions.
+#
+# Resolved by lingbotvla.data.vla_data.utils.resolve_robot_config_path with
+# ('joint', 'rel') -> configs/robot_configs/robotwin_rel.yaml. Training and the
+# deploy server both go through that helper, so a run can never be served with
+# the absolute config by accident.
+#
+# Why each field is what it is:
+#
+#   action.arm.position: subtract_state True
+#       The action column comes straight out of the same lerobot parquet as the
+#       absolute config (observation.state / action, both 14-dim joint vectors);
+#       nothing about the dataset changes. Setting this to True makes
+#       FeatureTransform.apply compute `action - state` at load time and
+#       FeatureTransform.unapply add the state back at inference, so the model
+#       sees deltas and the simulator still receives absolute joint targets.
+#
+#   action.arm.position: relative_type world
+#       REQUIRED, and not a no-op. The parser defaults `relative_type` to
+#       'quaternion_local', and any value in
+#       {quaternion, quaternion_world, quaternion_local} takes the rotation-
+#       composition branch, which asserts `end.position` is present and would
+#       fail on a joint feature. A plain value routes to the elementwise
+#       subtraction this config wants. `FeatureTransform.check_action_type`
+#       now rejects the quaternion pairing for joint poses at startup rather
+#       than letting it blow up mid-dataloading.
+#
+#   action.effector.position: subtract_state False
+#       The gripper stays absolute in a relative run. It cannot be subtractive
+#       (`get_feature_mapping` asserts this for effector features), and a binary
+#       open/close command has no meaningful delta from its own current value.
+#
+#   norm_stats: assets/norm_stats/robotwin_rel.json
+#       Must be regenerated against THIS config; see the command below. Reusing
+#       the absolute robotwin.json here is the one silent failure mode of this
+#       whole setup: with `bounds_99_woclip` the deltas would be normalized
+#       against a quantile range roughly two orders of magnitude too wide and
+#       collapse towards zero, with no error raised anywhere.
+#
+#       Regenerate with (run from the repository root, after this file exists):
+#
+#         python scripts/compute_norm_stats.py \
+#           --config configs/vla/norm_compute/post_data.yaml \
+#           --data.data_name robotwin \
+#           --data.train_path /mnt/data/liangjiaqi/yzm/RoboTwinData/lerobot_dataset/RoboTwin_lerobot_v30 \
+#           --data.robot_config_root ./configs/robot_configs \
+#           --data.action_space joint \
+#           --data.action_type rel \
+#           --data.norm_path assets/norm_stats/robotwin_rel.json
+#
+#       `--data.action_type rel` IS REQUIRED. It is what makes the resolver pick
+#       this file instead of robotwin.yaml: the robot config is resolved before
+#       FeatureTransform could infer the type, so omitting it would load the
+#       absolute config and silently accumulate ABSOLUTE statistics. The script
+#       prints `action_type`/`subtract_state` and which of the two it is
+#       accumulating, so the log shows what actually happened.
+#
+#       The script reads `subtract_state` off whichever config this resolves to,
+#       so this file must exist (it does) before running. Add
+#       `--data.norm_merge_chunk_dim True` (the default) to share one statistic
+#       across all action horizon steps.
+
+states:
+  - observation.state.arm.position:
+      origin_keys:
+        - observation.state:
+            start: 0
+            end: 6
+        - observation.state:
+            start: 7
+            end: 13
+
+  - observation.state.effector.position:
+      origin_keys:
+        - observation.state:
+            start: 6
+            end: 7
+        - observation.state:
+            start: 13
+            end: 14
+
+actions:
+  - action.arm.position:
+      origin_keys:
+          - action:
+              start: 0
+              end: 6
+          - action:
+              start: 7
+              end: 13
+      # Relative joint target: action - state, elementwise over the 14 joint dims.
+      subtract_state: True
+      # Explicit plain type -- see the header. Omitting this asserts on
+      # `end.position` at load time.
+      relative_type: world
+
+  - action.effector.position:
+      origin_keys:
+          - action:
+              start: 6
+              end: 7
+          - action:
+              start: 13
+              end: 14
+      # Gripper stays absolute even in a relative run.
+      subtract_state: False
+
+images:
+  - observation.images.camera_top:
+      origin_keys:  observation.images.cam_high
+  - observation.images.camera_wrist_left:
+      origin_keys: observation.images.cam_left_wrist
+  - observation.images.camera_wrist_right:
+      origin_keys: observation.images.cam_right_wrist
+
+norm_stats: assets/norm_stats/robotwin_rel.json

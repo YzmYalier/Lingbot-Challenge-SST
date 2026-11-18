@@ -1,0 +1,26 @@
+# Runtime assets and caches; the recovered data_inputs JSON files are retained.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipc/
+.cache/
+/work/
+# Local handoff history; the public workflow is documented in the two READMEs.
+/COPY_MANIFEST.json
+/复现与调优说明.md
+/Lingbot-vla-challenge/DATA_INTEGRITY_FIX.md
+/environments/*/
+/RoboTwinData/
+/Qwen3-VL-4B-Instruct/
+/LingbotVLA2_Origin/
+/moge-2-vitb-normal/
+/vllm_space/qwen3.8-27B/
+/vllm_space/vllm-0.20.2/
+/sam3/ckpt/
+/Lingbot-vla-challenge/output/
+/RoboTwin/assets/embodiments/
+/RoboTwin/assets/objects/
+/RoboTwin/assets/background_texture/
+*.part
+/core
+/core.[0-9]*
