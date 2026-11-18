@@ -1,0 +1,53 @@
+{
+  "modules": {
+    "b-extra": {
+      "baseline": "N0",
+      "comparisonRows": [
+        "原图 · N015k10077.136.2",
+        "替换主视角 · N215k5076.050.8",
+        "native / causal15k5079.241.3",
+        "copy / causal15k5077.941.8",
+        "copy_t1 / causal15k5078.542.6",
+        "native / pair15k5077.038.8",
+        "copy / pair15k5077.638.6",
+        "copy_t1 / pair15k50—37.6"
+      ],
+      "treeParent": "n0",
+      "anchor": true
+    },
+    "b-query": {
+      "baseline": "N0",
+      "comparisonRows": [
+        "原图 · N015k10077.136.2",
+        "替换主视角 · N215k5076.050.8",
+        "SAM MetaQuery15k50—37.9"
+      ],
+      "treeParent": "n0",
+      "anchor": true
+    }
+  },
+  "layouts": [
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px",
+        "64px"
+      ]
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px"
+      ]
+    }
+  ],
+  "jsErrors": [],
+  "brokenAnchors": [],
+  "copiesIdentical": true
+}

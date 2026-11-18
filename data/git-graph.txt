@@ -1,0 +1,40 @@
+* 217b4da (yzm/fix/module-lr-wrist-aug-data-integrity, fix/module-lr-wrist-aug-data-integrity) fix(data): mask padded actions and rebuild frame-aligned RoboTwin data
+* dd049d0 (feat/module-lr-wrist-aug) feat(data): wrist-only photometric augmentation (data.wrist_augment)
+| * 6691b7e (yzm/fix/task-weighted-sampling-wrist-aug-data-integrity, fix/task-weighted-sampling-wrist-aug-data-integrity) fix(data): mask padded actions and rebuild frame-aligned RoboTwin data
+| * 7b17403 (feat/task-weighted-sampling-wrist-aug) feat(data): wrist-only photometric augmentation (data.wrist_augment)
+| * 6e481f2 (yzm/feat/task-weighted-sampling, feat/task-weighted-sampling) feat(data): sample frames within a task without replacement by default
+| * 25aef0d feat(data): task-weighted sampling + init_checkpoint_path
+|/  
+* 4f8512f (yzm/feat/module-lr, feat/module-lr) feat(optim): per-module learning-rate multipliers (train.module_lr_mult)
+* d572309 (HEAD -> feat/sam-raw-teacher, yzm/feat/sam-raw-teacher) feat(robotwin-eval): read cam_high style from the checkpoint's training set
+* a730cc1 feat(align): raw cam_high teachers + SAM mask-weighted align loss (plan A + data 1)
+| * 745acac (feat/depth-view) 默认test_num=50 开启简单视频保存
+| * 7236fe7 (yzm/feat/depth-view) feat(depth-view): read depth-teacher targets offline (data.depth_target_path)
+| * 524ee4f feat(depth-view): SpatialRGPT-style separate depth connector + launchers
+| * 66ca08a feat(depth-view): SAM main view + Lingbot-Depth slot, raw-cam_high teachers
+| * c865be6 (yzm/feat/sam-extra-view, feat/sam-extra-view) feat(sam-view): eval wiring for extra-view checkpoints
+| * 3233ca1 feat(sam-view): round-1 ablation configs + per-variant launcher
+| * 555fb09 feat(sam-view): raw cam_high main view + SAM rendering as a 4th image
+| | * 313f8d9 (yzm/feat/sam-query, feat/sam-query) feat(robotwin-eval): script.sh runs its own checkout, MODEL_PATH from env
+| | * 597a83e feat(sam-query): learnable prefix query supervised by cam_high SAM mask (A/B/C)
+| |/  
+| * 1d0d70e (yzm/feat/sam-mask-overlay, feat/sam-mask-overlay) feat(data): raw RoboTwin + on-the-fly SAM masks (data.sam_mask_path / sam_style)
+|/  
+| * f85066c (yzm/feat/sam-dual-stream, feat/sam-dual-stream) feat(align): dual-stream raw cam_high for depth/video heads (plan C + data 1) [WIP]
+|/  
+* 447044e (yzm/main, main) feat(train): multi-node launcher keeping global_batch_size fixed
+* 63c6b8a feat(robotwin-eval): judged + outline cam_high masking (SAM_JUDGE / OUTSIDE_SCALE / EDGE_WIDTH)
+* 644e0e0 docs(script_sam): update QWEN_GPU memory limits for the 4 GiB KV pin
+* d1d575b fix(robotwin-eval): pin mask-Qwen KV cache to 4 GiB
+* 30cd03f feat(robotwin-eval): expose executed chunk length via USE_LENGTH
+* d1c21ee feat(robotwin-eval): SAM3-masked cam_high eval (script_sam.sh / --sam_mask)
+* 963ca44 feat(robotwin-eval): three video modes via ENABLE_VIDEO / --enable_video
+* f53e4e6 feat(robotwin-eval): per-task_config step limits (--step_limit_file)
+* d2394e7 feat(robotwin-eval): configurable episodes per task (TEST_NUM / --test_num)
+* 62ef792 添加sam-single/multi训练接口
+* cd07c1d abs/rel joint/joint四种实现
+* b317523 fix(robotwin-eval): give each run its own Warp kernel cache
+* ac0e68d fix(robotwin-eval): kill tasks that stop making progress, so a run can end
+* eb198b7 perf(robotwin-eval): order tasks longest-first to shorten the tail
+* f614bf3 feat(robotwin-eval): multi-node scheduling + sim-side preflight hardening
+* 7afe3fe feat: add RoboTwin v3.0 formal training config and wandb metric logging

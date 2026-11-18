@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#faf9f6">
+  <meta name="description" content="蚂蚁灵波具身大模型挑战赛参赛报告：记录 LingBot-VLA 2.0 6B 在 RoboTwin 上的 SFT 调优，讨论输入、监督与优化，并探索通过 Qwen-SAM 显式视觉 prompt 连接 System 1 与 System 2。">
+  <title>VLA SFT in Practice</title>
+  <style>@@STYLE@@</style>
+</head>
+<body>
+  <a class="skip" href="#lineage">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
+  <header class="topbar">
+    <div class="nav-inner">
+      <nav aria-label="顶部导航"><a href="#lineage">整体介绍</a><a href="#results">主要结果</a><a href="#experiments">实验分析</a><a href="#discussion">实验结论</a></nav>
+      <a class="nav-source" href="#task-results">逐任务结果 <span>↗</span></a>
+      <div class="language-switch" role="group" aria-label="Language" data-no-i18n><button type="button" data-language="en" lang="en" aria-pressed="true">EN</button><button type="button" data-language="zh" lang="zh-CN" aria-pressed="false">中文</button></div>
+    </div>
+  </header>
+
+  <div id="top" class="masthead">
+    <h1 lang="en">VLA SFT <span>in Practice</span></h1>
+    <p class="subtitle" lang="en">A Competition Report for the Robbyant Embodied AI Challenge</p>
+    <div class="authors" aria-label="Authors" lang="en" data-no-i18n><span aria-describedby="affiliation-1">Zeming Yang<sup>1*</sup>,</span> <span aria-describedby="affiliation-3">Jiabao Lu<sup>3*</sup>,</span> <span aria-describedby="affiliation-2">Jiaqi Liang<sup>2*</sup>,</span> <span aria-describedby="affiliation-2 project-leader-note corresponding-author-note">Zhenhao Shen<sup>2*<svg class="author-dagger" viewBox="0 0 12 22" role="img" aria-label="Dagger" focusable="false"><title>†</title><path d="M6 0 7.5 2 7 5.5H10.5L12 4.5 11 8H7.5L7.2 16 6 22 4.8 16 4.5 8H1L0 4.5 1.5 5.5H5L4.5 2Z"/></svg><svg class="author-dagger author-double-dagger" viewBox="0 0 12 22" role="img" aria-label="Double dagger" focusable="false"><title>‡</title><path d="M6 0 7.5 2 7 5.5H10.5L12 4.5 11 8H7.5L7.35 12.5H10.5L12 11.5 11 15H7.25L7.2 16 6 22 4.8 16 4.75 15H1L0 11.5 1.5 12.5H4.65L4.5 8H1L0 4.5 1.5 5.5H5L4.5 2Z"/></svg></sup></span></div>
+    <div class="affiliations" aria-label="Author affiliations" lang="en" data-no-i18n>
+      <span id="affiliation-1"><sup>1</sup>Tianjin University</span>
+      <span id="affiliation-2"><sup>2</sup>Peking University</span>
+      <span id="affiliation-3"><sup>3</sup>Institute of Automation, Chinese Academy of Sciences (CASIA)</span>
+    </div>
+    <div class="author-notes" lang="en" data-no-i18n><span>* Equal contribution</span><span id="project-leader-note"><svg class="author-dagger" viewBox="0 0 12 22" role="img" aria-label="Dagger" focusable="false"><title>†</title><path d="M6 0 7.5 2 7 5.5H10.5L12 4.5 11 8H7.5L7.2 16 6 22 4.8 16 4.5 8H1L0 4.5 1.5 5.5H5L4.5 2Z"/></svg> Project Leader</span><span id="corresponding-author-note"><svg class="author-dagger author-double-dagger" viewBox="0 0 12 22" role="img" aria-label="Double dagger" focusable="false"><title>‡</title><path d="M6 0 7.5 2 7 5.5H10.5L12 4.5 11 8H7.5L7.35 12.5H10.5L12 11.5 11 15H7.25L7.2 16 6 22 4.8 16 4.75 15H1L0 11.5 1.5 12.5H4.65L4.5 8H1L0 4.5 1.5 5.5H5L4.5 2Z"/></svg> Corresponding Author</span></div>
+    <div class="author-contacts" aria-label="Contact emails" lang="en" data-no-i18n>
+      <a href="mailto:zmyangcs@gmail.com">zmyangcs@gmail.com</a>
+      <a href="mailto:zhshen25@stu.pku.edu.cn">zhshen25@stu.pku.edu.cn</a>
+    </div>
+    <div class="competition-summary" aria-label="参赛成绩">
+      <p class="team-name">老年上海观光团 · SST</p>
+      <p class="competition-awards"><span>二等奖</span><span class="competition-separator" aria-hidden="true">·</span><span>观察团特别奖</span></p>
+      <p class="competition-ranks"><span>初赛 <strong>7 / 1,855</strong></span><span class="competition-separator" aria-hidden="true">·</span><span>决赛 <strong>3 / 15</strong></span></p>
+    </div>
+    <div class="hero-engagement">
+      <section class="reader-feedback" aria-labelledby="feedback-title">
+        <p id="feedback-title">如果这篇报告对你有帮助</p>
+        <div id="likebtn-slot" class="like-widget"></div>
+        <p id="likebtn-status" class="widget-status" role="status" aria-live="polite" data-no-i18n></p>
+      </section>
+      <section class="visitor-section" aria-labelledby="visitors-title">
+        <h2 id="visitors-title">读者来自哪里</h2>
+        <div id="visitor-map" class="visitor-map"></div>
+        <p id="visitor-map-status" class="widget-status" role="status" aria-live="polite" data-no-i18n></p>
+        <p class="visitor-caption">访问量与近似地理位置由 MapMyVisitors 提供。</p>
+      </section>
+    </div>
+    <div class="hero-actions"><a class="button primary" href="#lineage">整体介绍 <span>↓</span></a><a class="button" href="#results">主要结果 <span>↗</span></a><a class="button" id="code-link" role="link" aria-disabled="true">代码 <span aria-hidden="true">↗</span></a><a class="button" id="checkpoints-link" role="link" aria-disabled="true">权重 <span aria-hidden="true">↗</span></a><a class="button" id="datasets-link" role="link" aria-disabled="true">数据集 <span aria-hidden="true">↗</span></a></div>
+    <div class="hero-metrics">
+      <div><span class="metric-label">Randomized 成功率</span><strong><span class="from">36.2</span><span class="arrow">→</span>58.2<span class="unit">%</span></strong></div>
+      <div><span class="metric-label">Clean 成功率</span><strong>81.86<span class="unit">%</span></strong></div>
+      <div><span class="metric-label">任务 × episodes</span><strong>50 <span class="times">×</span> 100</strong></div>
+    </div>
+  </div>
+
+  <div class="document-layout">
+    <aside class="contents" aria-label="文章目录">
+      <div class="contents-inner"><p class="toc-label">目录</p>
+        <a href="#lineage"><span>I</span> 整体介绍</a>
+        <a href="#results"><span>II</span> 主要结果</a>
+        <a href="#setup"><span>III</span> 实验设置</a>
+        <a href="#experiments"><span>IV</span> 实验分析</a>
+        <div class="toc-sub"><a href="#n0">01 &nbsp; 基线与动作空间</a><a href="#n1">02 &nbsp; SAM 前景输入</a><a href="#n2">03 &nbsp; 掩码质量与辅助输入</a><a href="#n3">04 &nbsp; 蒸馏目标与优化</a><a href="#n4">05 &nbsp; 模块更新与采样</a><a href="#n5">06 &nbsp; 数据修复</a></div>
+        <a href="#discussion"><span>V</span> 实验结论</a>
+        <a href="#task-results"><span>A</span> 逐任务结果</a>
+        <div class="toc-footer"><a href="#top">返回页首 ↑</a></div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="report-section" id="lineage" data-section>
+        <div class="section-heading"><div><h2>整体介绍</h2></div></div>
+        <div class="prose">
+          <p class="competition-intro">本文记录老年上海观光团（SST, Shanghai Senior Tour）参加蚂蚁灵波首届具身大模型挑战赛总决赛的实践，包括模型调优、实验分析与赛后总结。</p>
+          <p>本文有三个目的：</p>
+          <ol class="overview-list">
+            <li><strong>记录参赛过程。</strong>比赛以 LingBot-VLA 2.0 6B 预训练权重为起点，在 RoboTwin demo_clean-50 数据集上进行 post-training 调优，并在 demo_clean 与 demo_randomized 配置下评测。本文记录我们在这一过程中的实验、结果与选择。</li>
+            <li><strong>探讨 VLA SFT 中值得注意的问题。</strong>借这次调优，我们探索了多视角输入、MetaQuery 监督、学习率优化、padding action 等问题，总结其中值得注意的设计与训练选择。</li>
+            <li><strong>提供一种通过视觉 prompt 连接 System 1 与 System 2 的方式。</strong>我们的整体方案使用 Qwen-SAM 为 LingBot-VLA 2.0 提供显式的视觉 prompt，将高层语义理解转化为动作模型可直接读取的前景提示，为 System 1 与 System 2 的结合提供一种实践思路。</li>
+          </ol>
+        </div>
+        <div id="map-panel">
+          <div class="graph-legend"><span><i class="dot main-dot"></i>最终方案的演进</span><span><i class="dot branch-dot"></i>平行对照实验</span><span>Randomized 成功率</span></div>
+          @@GRAPH@@
+        </div>
+      </section>
+
+      <section class="report-section" id="results" data-section>
+        <div class="section-heading"><div><h2>主要结果</h2></div><p>最终模型在 Clean 与 Randomized 上分别达到 81.86% 和 58.22%。前景掩码带来了最明显的改善。</p></div>
+        <figure class="results-figure"><div class="chart-top"><div><h3>成功率（%）</h3></div><div class="segmented" role="group" aria-label="选择成功率指标"><button type="button" data-metric="random" aria-pressed="true">Randomized</button><button type="button" data-metric="clean" aria-pressed="false">Clean</button></div></div><div id="main-chart" aria-live="polite"></div></figure>
+        @@SUMMARY@@
+        <div class="finding-strip"><span class="finding-number">70.04<span>%</span></span><p><strong>最终模型的平均成功率</strong><br>仅使用 clean 数据训练，在 Clean 与 Randomized 两个场景上取算术平均。</p></div>
+      </section>
+
+      <section class="report-section" id="setup" data-section>
+        <div class="section-heading"><div><h2>模型与实验设置</h2></div><p>我们以 LingBot-VLA 2.0 为基础，在 RoboTwin 上进行监督微调，重点考察 clean-to-randomized 的泛化。</p></div>
+        <div class="setup-grid"><div><span>训练数据</span><strong>Clean-50</strong><p>仅使用 clean 示范<br>50 个操作任务</p></div><div><span>全局 batch</span><strong>1,024</strong><p>Micro batch 32</p></div><div><span>动作块</span><strong>50 steps</strong><p>Absolute joint<br>默认执行完整 chunk</p></div><div><span>优化器</span><strong>Muon</strong><p>基础 LR 1e−4 → 5e−5<br>Cosine · 50k 调度周期</p></div></div>
+        <div class="prose"><p>LingBot-VLA 2.0 使用 Qwen3-VL-4B 主干，结合三视角图像、语言与流匹配动作专家。训练时，可学习 query 对齐冻结的 depth / video teacher；推理时只运行策略模型，无需 teacher。</p><p>我们在 50 个任务上分别评测 Clean 与 Randomized 场景。消融实验主要采用每任务 50 次评测，基线和最终模型采用每任务 100 次；训练步数与评测次数列在各表中。成功率按全部任务汇总，表中的差值以百分点（pp）表示。</p></div>
+      </section>
+
+      <section class="report-section experiment-intro" id="experiments" data-section><h2>实验与分析</h2><p>我们先比较动作表示与视觉输入，再调整蒸馏和优化策略，最后回到训练监督本身。</p></section>
+      @@MODULES@@
+
+      <section class="report-section" id="discussion" data-section>
+        <div class="section-heading"><div><h2>实验结论</h2></div></div>
+        <ol class="conclusion-list">
+          <li><h3>优先从输入侧接入新信息</h3><p>同样从原图基线出发，保留 causal attention 的 SAM 第四视角优于 MetaQuery 辅助监督，而直接用前景图替换主视角的效果更好。这些结果说明，在本组任务中，让模型在动作预测时直接读取前景信息，比仅通过掩码重建目标引导表征学习更容易转化为操作收益。为 VLA 增加任务相关信息时，应优先考虑它能否在推理中被策略直接利用。</p></li>
+          <li><h3>增加输入时，优先保留 VLM 原生的注意力形式</h3><p>在第四视角实验中，三种位置编码在 causal 设置下仅相差约 1.3 个百分点；同一位置编码改用 pair attention 后，成功率却一致下降，降幅为 2.6–5.0 个百分点。新增 token 不只带来更多信息，也可能改变预训练模型已有的信息交互方式。因此，相比精细设计新内容的位置编码，先让其可见关系贴合 VLM 原生的 causal attention，更值得优先考虑。</p></li>
+          <li><h3>按模块分配学习率，平衡能力保留与任务适应</h3><p>统一降低学习率没有带来收益；降低 ViT、visual merger 与 LLM 的学习率、冻结 token embedding，同时保留动作与对齐模块的更新幅度，则在 15k 和 25k 时都带来了约 2.2 个百分点的 Randomized 提升。Post-training 不需要让所有模块以同样的速度变化：预训练程度高、希望保留已有表征的模块应使用更低的学习率，必要时冻结；承担下游适应的模块则需要足够的更新空间。</p></li>
+          <li><h3>排除 padding action，避免把补齐动作当作任务监督</h3><p>Padding 是为了统一动作块长度引入的人工补齐，并不代表真实的决策轨迹。对于 RoboTwin 中没有 memory / history 设计的 VLA，反复监督 episode 末尾的保持动作，可能让相似的当前观测同时对应“继续执行”与“保持不动”，加剧“任务执行中”与“任务已结束”之间的歧义。因此，padding action 应从 loss 及其归一化分母中排除，让模型只学习有效动作。</p></li>
+          <li><h3>将感知模型的迁移能力转化为 VLA 的视觉指导</h3><p>现有 VLM 与视频分割模型的跨场景物体定位、前景提取能力，可以通过视觉 prompt 为 VLA 提供有效指导。我们的 Qwen-SAM pipeline 用 Qwen 理解指令并识别相关对象，再由 SAM 提取前景。在 RoboTwin 这种以场景外观变化为主的 clean-to-randomized 迁移中，引入 SAM multi 前景输入后，Randomized 成功率从 36.2% 提高到 47.8%；结合掩码复核与渲染调整后进一步达到 50.8%。这些实验表明，Qwen-SAM 在这一迁移设置下十分有效，也提供了通过视觉 prompt 连接 System 1 与 System 2 的一种具体实现。</p></li>
+        </ol>
+      </section>
+
+      <section class="report-section" id="task-results" data-section>
+        <div class="section-heading"><div><h2>逐任务结果</h2></div><p>对比<strong>原始基线 N0（15k）</strong>与<strong>最终模型 N5（30k）</strong>，两者均在每个场景、每个任务上评测 100 次。</p></div>
+        <div class="task-controls"><label class="search-label"><span>搜索任务</span><input id="task-search" type="search" placeholder="例如 click、stack、bottle" autocomplete="off"></label><label><span>排序方式</span><select id="task-sort"><option value="name">按任务名称</option><option value="gain-desc">Randomized 提升最大</option><option value="gain-asc">Randomized 下降最大</option><option value="final-desc">最终 Randomized 最高</option></select></label><span id="task-count" aria-live="polite">50 / 50 任务</span></div>
+        <div class="table-scroll task-table-wrap" tabindex="0" role="region" aria-label="逐任务成功率"><table class="task-table"><thead><tr><th scope="col">Task</th><th scope="col">N0 · 15k<br>Clean (%)</th><th scope="col">N5 · 30k<br>Clean (%)</th><th scope="col">N0 · 15k<br>Random (%)</th><th scope="col">N5 · 30k<br>Random (%)</th><th scope="col">Δ Random</th></tr></thead><tbody id="task-table"></tbody></table></div>
+      </section>
+      <footer><div class="footer-right"><button id="print-report" type="button">打印 / 保存 PDF ↗</button></div></footer>
+    </main>
+  </div>
+  <noscript><p class="noscript">开启 JavaScript 可查看交互图表与逐任务结果。</p></noscript>
+  <script id="report-data" type="application/json">@@DATA@@</script>
+  <script id="report-i18n" type="application/json">@@I18N@@</script>
+  <script id="report-widgets" type="application/json">@@WIDGETS@@</script>
+  <script id="report-widget-script">@@WIDGET_SCRIPT@@</script>
+  <script id="report-script">@@SCRIPT@@</script>
+</body>
+</html>

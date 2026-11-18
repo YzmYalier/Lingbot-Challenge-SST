@@ -1,0 +1,15 @@
+{
+  "chartLabel": {"en": "{scene} success rate, percent", "zh": "{scene} 成功率，单位百分比"},
+  "mainN3": {"en": "Raw teacher + weighting", "zh": "Raw teacher + 加权"},
+  "noTasks": {"en": "No matching tasks. Try another search term.", "zh": "没有匹配的任务，请尝试其他关键词。"},
+  "taskCount": {"en": "{count} / {total} tasks", "zh": "{count} / {total} 任务"},
+  "clickTitle": {"en": "Click tasks: {scene} success rate (%)", "zh": "Click 任务的 {scene} 成功率（%）"},
+  "beforeRepair": {"en": "N4 · 25k · Before repair", "zh": "N4 · 25k · 修复前"},
+  "afterRepair": {"en": "N5 · 25k · Joint repair", "zh": "N5 · 25k · 联合修复后"},
+  "widgetLocal": {"en": "Available on the published website.", "zh": "请在正式发布的网站上使用此功能。"},
+  "likeLoading": {"en": "Loading likes…", "zh": "正在加载点赞…"},
+  "likeUnavailable": {"en": "Likes are temporarily unavailable.", "zh": "点赞暂时无法加载。"},
+  "mapLoading": {"en": "Loading visitor statistics…", "zh": "正在加载访客统计…"},
+  "mapUnavailable": {"en": "Visitor statistics are temporarily unavailable.", "zh": "访客统计暂时无法加载。"},
+  "mapNotConfigured": {"en": "Visitor statistics are not available yet.", "zh": "访客统计尚未启用。"}
+}

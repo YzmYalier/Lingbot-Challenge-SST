@@ -1,0 +1,89 @@
+{
+  "figures": [
+    {
+      "name": "03a-input-architecture",
+      "outside": [],
+      "titles": [
+        "22px"
+      ],
+      "internalSizes": [
+        "16px"
+      ],
+      "families": [
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"WenQuanYi Micro Hei\", sans-serif"
+      ],
+      "action": [
+        {
+          "size": "16px",
+          "weight": "600"
+        }
+      ]
+    },
+    {
+      "name": "03a-attention-mask",
+      "outside": [],
+      "titles": [
+        "22px"
+      ],
+      "internalSizes": [
+        "16px"
+      ],
+      "families": [
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"WenQuanYi Micro Hei\", sans-serif"
+      ],
+      "action": []
+    },
+    {
+      "name": "03b-metaquery-architecture",
+      "outside": [],
+      "titles": [
+        "22px"
+      ],
+      "internalSizes": [
+        "16px"
+      ],
+      "families": [
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", \"WenQuanYi Micro Hei\", sans-serif"
+      ],
+      "action": [
+        {
+          "size": "16px",
+          "weight": "600"
+        }
+      ]
+    }
+  ],
+  "layout": [
+    {
+      "width": 1440,
+      "document": 1440,
+      "diagramFonts": [
+        "22px",
+        "16px"
+      ]
+    },
+    {
+      "width": 390,
+      "document": 390,
+      "diagramFonts": [
+        "22px",
+        "16px"
+      ]
+    }
+  ],
+  "pairMask": {
+    "crossView": "full rectangle",
+    "withinView": "lower triangle",
+    "positionModes": [
+      "native",
+      "copy",
+      "copy_t1"
+    ],
+    "originalChecksPassed": [
+      "test_causal_is_noop",
+      "test_pair",
+      "test_pair_bidir",
+      "test_pair_respects_padding"
+    ]
+  }
+}

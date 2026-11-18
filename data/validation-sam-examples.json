@@ -1,0 +1,33 @@
+{
+  "examples": 6,
+  "loadedFrames": 12,
+  "originalDimensions": [
+    320,
+    240
+  ],
+  "inSection": "03 / n2",
+  "layouts": [
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "fontSizes": [
+        "16px",
+        "22px",
+        "32px",
+        "64px"
+      ]
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "fontSizes": [
+        "16px",
+        "22px",
+        "32px"
+      ]
+    }
+  ],
+  "brokenAnchors": [],
+  "jsErrors": [],
+  "copiesIdentical": true
+}

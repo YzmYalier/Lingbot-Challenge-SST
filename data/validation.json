@@ -1,0 +1,66 @@
+{
+  "desktop": {
+    "viewport": 1440,
+    "body": 1440
+  },
+  "tablet": {
+    "viewport": 768,
+    "body": 768
+  },
+  "mobile": {
+    "viewport": 390,
+    "body": 390
+  },
+  "narrow": {
+    "viewport": 360,
+    "body": 360
+  },
+  "offline": true,
+  "fontChecks": [
+    {
+      "viewport": 1440,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px",
+        "64px"
+      ]
+    },
+    {
+      "viewport": 768,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px",
+        "64px"
+      ]
+    },
+    {
+      "viewport": 390,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px"
+      ]
+    },
+    {
+      "viewport": 360,
+      "sizes": [
+        "16px",
+        "22px",
+        "32px"
+      ]
+    }
+  ],
+  "jsErrors": [],
+  "checks": [
+    "tree anchors",
+    "chart metric switch",
+    "task search and empty state",
+    "task sorting",
+    "blog content and internal anchors",
+    "four font sizes",
+    "local file offline",
+    "print PDF"
+  ]
+}

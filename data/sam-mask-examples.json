@@ -1,0 +1,191 @@
+{
+  "run": "robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044",
+  "scene": "randomized",
+  "outside_scale": 0.1,
+  "edge_width": 2,
+  "judge": true,
+  "frame_pairing": "Both videos start from the same initial cam_high observation: SAM begin() precedes the first take_action(), whose recorder writes cached now_obs before applying the action.",
+  "processing": "Decode frame 0 from each original video; save lossless PNG; no crop, color adjustment, or mask regeneration. SVG displays the full frame at the same aspect ratio.",
+  "examples": [
+    {
+      "task": "adjust_bottle",
+      "label": "adjust_bottle",
+      "episode": 0,
+      "instruction": "Use the left arm to grab the bottle with red screw cap head-up.",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/adjust_bottle/episode0_success_cam_high_masked.json",
+      "mask_area_fraction": 0.04848,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/adjust_bottle/episode0_success.mp4",
+          "frame_index": 0,
+          "video_frames": 115,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/adjust_bottle-raw.png",
+          "sha256": "ad30c26a816f0407f2602b97702641a66f246ed5f2300aa75d1ccc7255a12c10"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/adjust_bottle/episode0_success_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 3,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/adjust_bottle-sam.png",
+          "sha256": "f3e43b5edf226409c448b0f03490efe1bf6c57b7355dc1e5c5e466a857014bed"
+        }
+      }
+    },
+    {
+      "task": "blocks_ranking_size",
+      "label": "blocks_ranking_size",
+      "episode": 0,
+      "instruction": "Place large block, medium block, and small block at the table center, largest to smallest.",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/blocks_ranking_size/episode0_failure_cam_high_masked.json",
+      "mask_area_fraction": 0.04359,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/blocks_ranking_size/episode0_failure.mp4",
+          "frame_index": 0,
+          "video_frames": 1050,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/blocks_ranking_size-raw.png",
+          "sha256": "78e844ec2c7c55c2a8714d3bf4e29dcef66d02be4e2e28c9b433a596f6db83b6"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/blocks_ranking_size/episode0_failure_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 21,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/blocks_ranking_size-sam.png",
+          "sha256": "25256e5278dabf6c25af12340a854fa8e9253653d4c2c53cb2ffcab71cb7f9d6"
+        }
+      }
+    },
+    {
+      "task": "lift_pot",
+      "label": "lift_pot",
+      "episode": 0,
+      "instruction": "Grab the kitchenpot with two side handles with both arms.",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/lift_pot/episode0_failure_cam_high_masked.json",
+      "mask_area_fraction": 0.0656,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/lift_pot/episode0_failure.mp4",
+          "frame_index": 0,
+          "video_frames": 200,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/lift_pot-raw.png",
+          "sha256": "c39ac0853d74f563f4bf3d2c31817afb4db2aac14056ea07801a6e2e1669a206"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/lift_pot/episode0_failure_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 4,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/lift_pot-sam.png",
+          "sha256": "a00e3909102c404841aca868cc5fcb9b687ab163699ef82bf684603c5550c33b"
+        }
+      }
+    },
+    {
+      "task": "move_pillbottle_pad",
+      "label": "move_pillbottle_pad",
+      "episode": 0,
+      "instruction": "Pick the orange capped bottle and set it onto the pad.",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/move_pillbottle_pad/episode0_failure_cam_high_masked.json",
+      "mask_area_fraction": 0.04917,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/move_pillbottle_pad/episode0_failure.mp4",
+          "frame_index": 0,
+          "video_frames": 400,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/move_pillbottle_pad-raw.png",
+          "sha256": "2311e6258ff33f5342f026ba66af70998012f22fa8660f2aa2e287aa1e129278"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/move_pillbottle_pad/episode0_failure_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 8,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/move_pillbottle_pad-sam.png",
+          "sha256": "d8fb8a95daffbf69392f983b91b0d388e2a2939c720c7218e52e2c70dda86316"
+        }
+      }
+    },
+    {
+      "task": "place_object_basket",
+      "label": "place_object_basket",
+      "episode": 0,
+      "instruction": "Pick up the compact toycar with rotating wheels, place it in the basket with rounded edges, move the basket with rounded edges.",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_object_basket/episode0_success_cam_high_masked.json",
+      "mask_area_fraction": 0.10809,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_object_basket/episode0_success.mp4",
+          "frame_index": 0,
+          "video_frames": 227,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/place_object_basket-raw.png",
+          "sha256": "4a4388a3d9db89559b9d8318ce69ab40aee8a4aea39ce426182f6e6e0ca8481f"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_object_basket/episode0_success_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 5,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/place_object_basket-sam.png",
+          "sha256": "5fc1d8f4b5d10cd852a7c6f6a61c298f83c1a4d2f5dcbd044e25eaeaafc41862"
+        }
+      }
+    },
+    {
+      "task": "place_shoe",
+      "label": "place_shoe",
+      "episode": 0,
+      "instruction": "Use the left arm to grab the medium adult shoe from the table and place it on the mat",
+      "metadata": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_shoe/episode0_success_cam_high_masked.json",
+      "mask_area_fraction": 0.11026,
+      "frames": {
+        "raw": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_shoe/episode0_success.mp4",
+          "frame_index": 0,
+          "video_frames": 141,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/place_shoe-raw.png",
+          "sha256": "30fc69c26f82b7ddda08bd6ada7d11c04347276ea367625b26489c71c5d8324b"
+        },
+        "sam": {
+          "video": "VLABenchmarkResult/robotwin_v30_modlr_no_wristaug_datafix_30000_demo_randomized_samvla_judge_s0.1_w2_ep10_20261026_062044/eval_results/place_shoe/episode0_success_cam_high_masked.mp4",
+          "frame_index": 0,
+          "video_frames": 3,
+          "fps": 10.0,
+          "width": 320,
+          "height": 240,
+          "png": "WebPage/assets/sam-examples/place_shoe-sam.png",
+          "sha256": "4072ecde0b611420118e127bb3ee8643a5a0fbd08f6f4dc615f9a0217eaa9470"
+        }
+      }
+    }
+  ]
+}

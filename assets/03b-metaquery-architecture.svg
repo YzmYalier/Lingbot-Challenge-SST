@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="diagram-metaquery" class="method-svg" width="960" height="878" viewBox="0 0 960 878" role="img" aria-labelledby="diagram-metaquery-title diagram-metaquery-desc">
+<title id="diagram-metaquery-title">03.b · 用 MetaQuery 学习 SAM 掩码</title>
+<desc id="diagram-metaquery-desc">策略仍输入三张原图。图像和语言 token 后插入可学习 SAM Query，再接原有 Depth/Video query，整个 VLM prefix 使用 causal attention。动作专家可以读取 SAM Query，其在推理中保留。训练专用的 B 型掩码头将主视角 hidden 投影为像素 embedding F，将 SAM Query hidden 投影为 mask embedding e，通过点积及 query 维度最大值形成 32×32 掩码 logits，以离线 SAM 目标计算 BCE 与 Dice loss。推理移除掩码预测头和损失。</desc>
+<defs><style>
+#diagram-metaquery text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif; font-size: 16px; fill: #273731; }
+#diagram-metaquery .figure-title { font-size: 22px; font-weight: 600; }
+#diagram-metaquery .strong { font-weight: 600; }
+#diagram-metaquery .muted { fill: #63746b; }
+#diagram-metaquery .teal { fill: #356e65; }
+#diagram-metaquery .copper { fill: #aa573b; }
+</style>
+<marker id="diagram-metaquery-arrow-neutral" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 7 3.5 L 0 7 Z" fill="#63746b"/></marker>
+<marker id="diagram-metaquery-arrow-teal" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 7 3.5 L 0 7 Z" fill="#356e65"/></marker>
+<marker id="diagram-metaquery-arrow-copper" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 7 3.5 L 0 7 Z" fill="#aa573b"/></marker>
+</defs>
+<rect x="0" y="0" width="960" height="878" rx="0" fill="white" stroke="none" stroke-width="1"/>
+<text x="32" y="40" text-anchor="start" dominant-baseline="middle" class="figure-title">03.b · 用 MetaQuery 学习 SAM 掩码</text>
+<rect x="32" y="84" width="140" height="84" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<rect x="64" y="96" width="76" height="32" rx="3" fill="#e8ece5" stroke="none" stroke-width="1"/>
+<path d="M 70 120 H 134" fill="none" stroke="#b9c7bb" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="78" y="105" width="19" height="16" rx="2" fill="#9eada1" stroke="none" stroke-width="1"/>
+<circle cx="116" cy="111" r="9" fill="#6c8070"/>
+<text x="102" y="148" text-anchor="middle" dominant-baseline="middle" class="strong">主视角原图</text>
+<path d="M 102 168 V 192" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="182" y="84" width="140" height="84" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<rect x="214" y="96" width="76" height="32" rx="3" fill="#e8ece5" stroke="none" stroke-width="1"/>
+<path d="M 220 120 H 284" fill="none" stroke="#b9c7bb" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="228" y="105" width="19" height="16" rx="2" fill="#9eada1" stroke="none" stroke-width="1"/>
+<circle cx="266" cy="111" r="9" fill="#6c8070"/>
+<text x="252" y="148" text-anchor="middle" dominant-baseline="middle" class="strong">左腕原图</text>
+<path d="M 252 168 V 192" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="332" y="84" width="140" height="84" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<rect x="364" y="96" width="76" height="32" rx="3" fill="#e8ece5" stroke="none" stroke-width="1"/>
+<path d="M 370 120 H 434" fill="none" stroke="#b9c7bb" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="378" y="105" width="19" height="16" rx="2" fill="#9eada1" stroke="none" stroke-width="1"/>
+<circle cx="416" cy="111" r="9" fill="#6c8070"/>
+<text x="402" y="148" text-anchor="middle" dominant-baseline="middle" class="strong">右腕原图</text>
+<path d="M 402 168 V 192" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="32" y="192" width="440" height="64" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="252.0" y="224.0" text-anchor="middle" dominant-baseline="middle" class="strong">共享 ViT + Visual merger</text>
+<rect x="482" y="192" width="140" height="64" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="552.0" y="211.5" text-anchor="middle" dominant-baseline="middle" class="strong">语言</text>
+<text x="552.0" y="236.5" text-anchor="middle" dominant-baseline="middle" class="strong">Embedding</text>
+<rect x="632" y="192" width="140" height="64" rx="6" fill="#eaf3ee" stroke="#9cbbac" stroke-width="1"/>
+<text x="702.0" y="211.5" text-anchor="middle" dominant-baseline="middle" class="strong teal">新增可学习</text>
+<text x="702.0" y="236.5" text-anchor="middle" dominant-baseline="middle" class="strong teal">SAM Query</text>
+<rect x="782" y="192" width="146" height="64" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="855.0" y="211.5" text-anchor="middle" dominant-baseline="middle" class="strong">原有 Query</text>
+<text x="855.0" y="236.5" text-anchor="middle" dominant-baseline="middle" class="strong">Depth / Video</text>
+<rect x="32" y="292" width="896" height="138" rx="6" fill="#f6f8f3" stroke="#adbeaf" stroke-width="1"/>
+<path d="M 252 256 V 278 H 111 V 308" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<path d="M 252 278 H 407 V 308" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<path d="M 259 278 V 308" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<path d="M 552 256 V 278 H 555 V 308" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<path d="M 702 256 V 278 H 703 V 308" fill="none" stroke="#356e65" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-teal)"/>
+<path d="M 855 256 V 278 H 850 V 308" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="44" y="308" width="134" height="54" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="111.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong">Raw</text>
+<rect x="192" y="308" width="134" height="54" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="259.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong">Wrist L</text>
+<rect x="340" y="308" width="134" height="54" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="407.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong">Wrist R</text>
+<rect x="488" y="308" width="134" height="54" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="555.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong">Text</text>
+<rect x="636" y="308" width="134" height="54" rx="6" fill="#eaf3ee" stroke="#9cbbac" stroke-width="1"/>
+<text x="703.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong teal">SAM Query</text>
+<rect x="784" y="308" width="132" height="54" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="850.0" y="335.0" text-anchor="middle" dominant-baseline="middle" class="strong">Depth / Video</text>
+<text x="480" y="398" text-anchor="middle" dominant-baseline="middle" class="strong">VLM · causal attention</text>
+<rect x="32" y="474" width="568" height="374" rx="6" fill="#fffcf8" stroke="#cfae98" stroke-width="1" stroke-dasharray="6 5"/>
+<path d="M 316 430 V 474" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-copper)"/>
+<text x="56" y="506" text-anchor="start" dominant-baseline="middle" class="strong copper">仅训练时 · SAM 辅助监督</text>
+<rect x="56" y="536" width="240" height="56" rx="6" fill="#fbf0e8" stroke="#d9bca9" stroke-width="1"/>
+<text x="176.0" y="551.5" text-anchor="middle" dominant-baseline="middle" class="strong">主视角 hidden</text>
+<text x="176.0" y="576.5" text-anchor="middle" dominant-baseline="middle" class="strong">像素投影 F</text>
+<rect x="320" y="536" width="256" height="56" rx="6" fill="#fbf0e8" stroke="#d9bca9" stroke-width="1"/>
+<text x="448.0" y="551.5" text-anchor="middle" dominant-baseline="middle" class="strong">SAM Query hidden</text>
+<text x="448.0" y="576.5" text-anchor="middle" dominant-baseline="middle" class="strong">Query 投影 e</text>
+<path d="M 176 592 V 614 H 310 V 630" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-copper)"/>
+<path d="M 448 592 V 614 H 310" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="310" cy="648" r="18" fill="#fbf0e8" stroke="#aa573b"/>
+<text x="310" y="648" text-anchor="middle" dominant-baseline="middle" class="strong copper">·</text>
+<text x="342" y="648" text-anchor="start" dominant-baseline="middle" class="copper">点积 + max over queries</text>
+<path d="M 310 666 V 682 H 176 V 698" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-copper)"/>
+<rect x="56" y="698" width="240" height="52" rx="6" fill="#fbf0e8" stroke="#d9bca9" stroke-width="1"/>
+<text x="176.0" y="724.0" text-anchor="middle" dominant-baseline="middle" class="strong">预测掩码 · 32 × 32</text>
+<rect x="320" y="698" width="256" height="52" rx="6" fill="#fbf0e8" stroke="#d9bca9" stroke-width="1"/>
+<text x="448.0" y="724.0" text-anchor="middle" dominant-baseline="middle" class="strong">SAM 目标 · 32 × 32</text>
+<path d="M 176 750 V 772 H 310 V 786" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-copper)"/>
+<path d="M 448 750 V 772 H 310" fill="none" stroke="#aa573b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="190" y="786" width="240" height="42" rx="6" fill="#fbf0e8" stroke="#d9bca9" stroke-width="1"/>
+<text x="310.0" y="807.0" text-anchor="middle" dominant-baseline="middle" class="strong">BCE + Dice loss</text>
+<path d="M 644 430 V 628 H 660" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<text x="630" y="529" text-anchor="middle" dominant-baseline="middle" class="muted" transform="rotate(-90 630 529)">Prefix K/V</text>
+<rect x="660" y="474" width="268" height="64" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="794.0" y="506.0" text-anchor="middle" dominant-baseline="middle" class="strong">状态 / 带噪动作 / t</text>
+<path d="M 794 538 V 592" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="660" y="592" width="268" height="72" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="794.0" y="628.0" text-anchor="middle" dominant-baseline="middle" class="strong">Action expert</text>
+<path d="M 794 664 V 714" fill="none" stroke="#63746b" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#diagram-metaquery-arrow-neutral)"/>
+<rect x="660" y="714" width="268" height="56" rx="6" fill="#fafbf8" stroke="#ced8d0" stroke-width="1"/>
+<text x="794.0" y="742.0" text-anchor="middle" dominant-baseline="middle" class="strong">动作块</text>
+<rect x="660" y="794" width="268" height="54" rx="6" fill="#eaf3ee" stroke="none" stroke-width="1"/>
+<text x="794" y="810" text-anchor="middle" dominant-baseline="middle" class="teal">推理保留 SAM Query</text>
+<text x="794" y="834" text-anchor="middle" dominant-baseline="middle" class="teal">移除掩码预测头与损失</text>
+</svg>

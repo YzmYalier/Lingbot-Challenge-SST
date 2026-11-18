@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rethinking VLA Post-training: Change the Input, Not the Model</title>
+<style>
+  :root {
+    --fg: #1f2328; --muted: #656d76; --line: #d0d7de; --bg-soft: #f6f8fa;
+    --main: #0969da; --main-soft: #ddf4ff; --neg: #8c959f; --neg-soft: #f3f4f6;
+    --up: #1a7f37; --down: #cf222e; --warn: #9a6700; --warn-soft: #fff8c5;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; color: var(--fg); font: 16px/1.7 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 24px 96px; }
+  h1 { font-size: 30px; line-height: 1.3; margin: 0 0 6px; }
+  h2 { font-size: 22px; margin: 0; }
+  h3 { font-size: 17px; margin: 22px 0 6px; }
+  .subtitle { font-size: 18px; color: var(--muted); margin: 0 0 4px; }
+  .byline { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+  code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg-soft); padding: 1px 5px; border-radius: 4px; }
+  a { color: var(--main); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+
+  /* ---------- tree ---------- */
+  .legend { display: flex; gap: 18px; font-size: 13px; color: var(--muted); margin: 8px 0 18px; flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .legend .l-main::before { background: var(--main-soft); border: 2px solid var(--main); }
+  .legend .l-neg::before { background: var(--neg-soft); border: 1px solid var(--neg); }
+  .legend .l-wip::before { background: #fff; border: 1px dashed var(--neg); }
+
+  .tree { padding: 4px 0; }
+  .row { display: grid; grid-template-columns: 250px 1fr; column-gap: 0; position: relative; padding-bottom: 30px; }
+  .row:last-child { padding-bottom: 0; }
+  .node { display: block; position: relative; border-radius: 8px; padding: 8px 12px; color: var(--fg); line-height: 1.35; transition: transform .12s, box-shadow .12s; }
+  .node:hover { text-decoration: none; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+  .node .id { font: 600 12px ui-monospace, monospace; color: var(--muted); margin-right: 6px; }
+  .node .name { font-weight: 600; font-size: 15px; }
+  .node .num { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .node .num b { color: var(--fg); }
+  .node .gain { display: inline-block; font-size: 12px; font-weight: 600; color: var(--up); margin-left: 6px; }
+  .node.main { background: var(--main-soft); border: 2px solid var(--main); }
+  .row:not(:last-child) .node.main::after { content: ""; position: absolute; left: 32px; top: 100%; height: 34px; border-left: 2px solid var(--main); }
+  .node.final { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--main); }
+  .branches { position: relative; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; padding-left: 34px; }
+  .branches:not(:empty)::before { content: ""; position: absolute; left: 0; top: 30px; width: 26px; border-top: 2px dashed var(--neg); }
+  .node.branch { background: var(--neg-soft); border: 1px solid var(--neg); padding: 6px 10px; }
+  .node.branch .name { font-size: 14px; font-weight: 500; }
+  .node.wip { background: #fff; border: 1px dashed var(--neg); }
+
+  /* ---------- sections ---------- */
+  section.exp { margin: 0 0 8px; padding: 20px 22px 14px; border-radius: 10px; border: 1px solid var(--line); scroll-margin-top: 16px; }
+  section.exp.main { border-left: 5px solid var(--main); }
+  section.exp.branch { border-left: 5px solid var(--neg); margin-left: 36px; background: #fcfcfd; }
+  section.exp.wip { border-left: 5px dashed var(--neg); margin-left: 36px; }
+  section.exp:target { box-shadow: 0 0 0 3px var(--main-soft); }
+  .sec-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tag { font: 600 12px ui-monospace, monospace; padding: 2px 8px; border-radius: 999px; }
+  .tag.main { background: var(--main); color: #fff; }
+  .tag.branch { background: var(--neg-soft); color: var(--muted); border: 1px solid var(--neg); }
+  .tag.wip { background: #fff; color: var(--muted); border: 1px dashed var(--neg); }
+  .meta { font-size: 14px; color: var(--muted); background: var(--bg-soft); border-radius: 6px; padding: 8px 12px; margin: 0 0 12px; }
+  .meta b { color: var(--fg); font-weight: 600; }
+  .meta .sep { margin: 0 8px; color: var(--line); }
+  .takeaway { border-left: 3px solid var(--main); padding: 4px 12px; margin: 12px 0 4px; background: #f8fbff; }
+  section.branch .takeaway, section.wip .takeaway { border-left-color: var(--neg); background: var(--neg-soft); }
+  .back { display: inline-block; font-size: 13px; margin-top: 8px; color: var(--muted); }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; }
+  th { background: var(--bg-soft); font-weight: 600; }
+  tr.ref td { color: var(--muted); }
+  tr.ref td:first-child::after { content: "对照"; font-size: 11px; margin-left: 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; }
+  tr.best td { font-weight: 600; }
+  .up { color: var(--up); } .down { color: var(--down); } .na { color: var(--neg); }
+  .d { font-size: 12px; margin-left: 4px; }
+  .fn { color: var(--warn); font-weight: 600; cursor: help; }
+  .note { font-size: 13px; color: var(--muted); }
+  .box { border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 14px; }
+  .box.warn { background: var(--warn-soft); border: 1px solid #d4a72c; }
+  .box.info { background: var(--bg-soft); border: 1px solid var(--line); }
+  .box ul { margin: 6px 0 0; padding-left: 20px; }
+  .todo { color: var(--warn); background: var(--warn-soft); padding: 0 6px; border-radius: 4px; font-size: 13px; }
+
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; row-gap: 8px; }
+    .branches { padding-left: 20px; }
+    .branches:not(:empty)::before { top: -4px; left: 32px; width: 0; height: 12px; border-top: 0; border-left: 2px dashed var(--neg); }
+    .row:not(:last-child) .node.main::after { display: none; }
+    section.exp.branch, section.exp.wip { margin-left: 12px; }
+    th, td { padding: 5px 6px; }
+  }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Rethinking VLA Post-training: Change the Input, Not the Model</h1>
+  <p class="subtitle">改输入，不改模型：VLA 监督微调中的预训练一致性</p>
+  <p class="byline">LingBot 挑战赛初赛技术报告 · 基于 LingBot-VLA 2.0 的 RoboTwin 2.0 后训练实证研究 · 作者：<span class="todo">TODO</span></p>
+</header>
+
+<h2 id="summary">摘要</h2>
+<p><span class="todo">TODO</span></p>
+
+<hr>
+
+<h2 id="tree">实验路线图</h2>
+<p>每个节点是一组实验。蓝色节点构成主线，每一步都在上一个蓝色节点的配置上只加一项改动，最终版本是 N5。灰色节点是从某个节点分出的支线，没有带来提升或者更差，没有进入主线。点击节点跳到对应段落。</p>
+<p class="note">节点上的数字为 <b>randomized / clean</b> 成功率（%），括号内是训练 step。绿色的增量和父节点在同一 step 下比较。</p>
+<div class="legend"><span class="l-main">主线：有提升，被后续继承</span><span class="l-neg">支线：无提升或更差</span><span class="l-wip">WIP：未完成评测</span></div>
+
+<nav class="tree" aria-label="实验路线图">
+  <div class="row">
+    <a class="node main" href="#n0"><span class="id">N0</span><span class="name">Baseline · abs joint</span><span class="num"><b>36.2</b> / 77.1 (15k)</span></a>
+    <div class="branches">
+      <a class="node branch" href="#b0-1"><span class="id">B0.1</span><span class="name">动作空间</span><span class="num">rel / ee：≤ 36.7</span></a>
+    </div>
+  </div>
+  <div class="row">
+    <a class="node main" href="#n1"><span class="id">N1</span><span class="name">Qwen-SAM 掩码 v1</span><span class="num"><b>47.8</b> / 78.0 (15k)<span class="gain">+11.6</span></span></a>
+    <div class="branches">
+      <a class="node branch" href="#b1-1"><span class="id">B1.1</span><span class="name">动作块执行长度</span><span class="num">ul 25 / 10：45.8 / 23.4</span></a>
+    </div>
+  </div>
+  <div class="row">
+    <a class="node main" href="#n2"><span class="id">N2</span><span class="name">Qwen-SAM 掩码 v2（VLM 复核）</span><span class="num"><b>50.8</b> / 76.0 (15k)<span class="gain">+3.0</span></span></a>
+    <div class="branches">
+      <a class="node branch" href="#b2-1"><span class="id">B2.1</span><span class="name">SAM 图作第 4 路输入</span><span class="num">6 组：37.6 – 42.6</span></a>
+      <a class="node branch" href="#b2-2"><span class="id">B2.2</span><span class="name">MetaQuery 监督</span><span class="num">37.9</span></a>
+    </div>
+  </div>
+  <div class="row">
+    <a class="node main" href="#n3"><span class="id">N3</span><span class="name">Teacher 改看原图</span><span class="num"><b>53.1</b> / 76.5 (15k)<span class="gain">+2.3</span></span></a>
+    <div class="branches">
+      <a class="node branch" href="#b3-1"><span class="id">B3.1</span><span class="name">全局学习率</span><span class="num">lr_1 52.1 · lr_2 19.5</span></a>
+      <a class="node branch" href="#b3-2"><span class="id">B3.2</span><span class="name">深度图作第 4 路输入</span><span class="num">48.2</span></a>
+      <a class="node branch wip" href="#b3-3"><span class="id">B3.3</span><span class="name">Dual-stream</span><span class="num">WIP</span></a>
+    </div>
+  </div>
+  <div class="row">
+    <a class="node main" href="#n4"><span class="id">N4</span><span class="name">分模块学习率</span><span class="num"><b>55.4</b> / 78.2 (15k)<span class="gain">+2.3</span></span></a>
+    <div class="branches">
+      <a class="node branch" href="#b4-1"><span class="id">B4.1</span><span class="name">腕部相机颜色扰动</span><span class="num">54.0</span></a>
+      <a class="node branch" href="#b4-2"><span class="id">B4.2</span><span class="name">按任务加权采样</span><span class="num">56.7 (30k) · 54.6 (35k)</span></a>
+    </div>
+  </div>
+  <div class="row">
+    <a class="node main final" href="#n5"><span class="id">N5</span><span class="name">action pad + 数据集修复（最终）</span><span class="num"><b>58.2</b> / 81.9 (30k)<span class="gain">+2.0</span></span></a>
+    <div class="branches"></div>
+  </div>
+</nav>
+<p class="note">N5 的增量对比的是 N4 评测过的最好结果（35k，56.2 / 80.5），因为 N4 没有评测 30k。</p>
+
+<hr>
+
+<h2 id="main-results">主要结果</h2>
+<table>
+  <thead><tr><th>节点</th><th>累积改动</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th><th>Avg</th></tr></thead>
+  <tbody>
+    <tr><td><a href="#n0">N0</a></td><td style="text-align:left">Baseline（abs joint）</td><td>15k</td><td>100</td><td>77.1</td><td>36.2</td><td>56.7</td></tr>
+    <tr><td><a href="#n1">N1</a></td><td style="text-align:left">+ Qwen-SAM 掩码 v1</td><td>15k</td><td>50</td><td>78.0</td><td>47.8</td><td>62.9</td></tr>
+    <tr><td><a href="#n2">N2</a></td><td style="text-align:left">+ VLM 复核掩码（v2）</td><td>15k</td><td>50</td><td>76.0</td><td>50.8</td><td>63.4</td></tr>
+    <tr><td><a href="#n3">N3</a></td><td style="text-align:left">+ Teacher 改看原图</td><td>15k</td><td>50</td><td>76.5</td><td>53.1</td><td>64.8</td></tr>
+    <tr><td><a href="#n4">N4</a></td><td style="text-align:left">+ 分模块学习率</td><td>15k</td><td>50</td><td>78.2</td><td>55.4</td><td>66.8</td></tr>
+    <tr class="best"><td><a href="#n5">N5</a></td><td style="text-align:left">+ action pad 与数据集修复</td><td>30k</td><td>100</td><td>81.9</td><td>58.2</td><td>70.1</td></tr>
+  </tbody>
+</table>
+<p class="note">N0–N4 都取 15k，方便逐行比较。N5 在 15k 只有 randomized 结果（53.0），所以这里用 30k。各节点在其他 step 的结果见对应段落。</p>
+
+<div class="box info">
+  <b>读数说明</b>
+  <ul>
+    <li>同一个 checkpoint 重复评测，差异最大约 1.9pp（N3 20k：53.4 和 51.5）。50 个任务 × 50 episode 时二项标准误约 1pp。所以 2pp 以内的差异不作为结论。</li>
+    <li>每个配置只训练了一个 seed。</li>
+    <li>标 <span class="fn">†</span> 的数字和草稿 blog.md 不一致，以 VLABenchmarkResult 下的 stats 为准，见 <a href="#discrepancy">附录 D</a>。</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="setup">背景与实验设置</h2>
+<h3>LingBot-VLA 2.0</h3>
+<p>LingBot-VLA 2.0 用 Qwen3-VL-4B 作 VLM 主干。三路相机图像分别经 ViT 编码成 64 个 token，和语言指令拼在一起，后面再接当前帧和未来帧两组可学习 query。整个 prefix 用 MRoPE 编码，内部是因果注意力。动作专家和 VLM 并行，同样是 36 层 Qwen2 结构，FFN 换成 1 个共享专家加 32 个 sigmoid 路由专家（top-4）的 MoE，流匹配时间步通过 AdaRMSNorm 注入。两条流在每一层拼接 QKV 做联合注意力。训练时两组 query 经 Resampler 分别回归冻结的 LingBot-Depth 深度特征和 DINO-Video 时序特征。推理时不用 teacher，prefix 计算一次后存进 KV cache，之后约 10 步 Euler 去噪只运行动作专家。</p>
+<h3>任务与评测协议</h3>
+<p>训练数据是 RoboTwin clean-50（<code>RoboTwin_lerobot_v30</code>），后来发现这个数据集有残缺，修复见 <a href="#n5">N5</a>。评测覆盖全部 50 个任务，分 clean 和 randomized 两种场景，每个任务 50 或 100 个 episode，各表都注明了 episode 数。</p>
+<h3>训练配置</h3>
+<p>训练使用 16 或 32 张 H200，global batch size 固定为 1024，micro batch size 为 32，卡数不同时调整梯度累积次数。除学习率外（见 <a href="#b3-1">B3.1</a> 和 <a href="#n4">N4</a>），其余超参和 LingBot-VLA 2.0 默认配置相同。</p>
+
+<hr>
+
+<h2 id="experiments">实验</h2>
+
+<section class="exp main" id="n0">
+  <div class="sec-head"><span class="tag main">N0</span><h2>Baseline：官方配置 + absolute joint</h2></div>
+  <p class="meta"><b>基于</b> 官方仓库 <code>ecca77b</code><span class="sep">|</span><b>改动</b> RoboTwin v3.0 训练配置（<code>7afe3fe</code>），动作空间用 absolute joint（<code>cd07c1d</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们以 LingBot-VLA 2.0 官方仓库为起点，动作用 absolute joint，在 <code>RoboTwin_lerobot_v30</code> 的 clean-50 数据上训练。clean 接近 80%，randomized 只有三成多，两者差距超过 40pp，基本没有从 clean 泛化到 randomized 的能力。后面所有改动都以缩小这个差距为目标。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="best"><td>abs joint</td><td>15k</td><td>100</td><td>77.1</td><td>36.2</td></tr>
+      <tr><td>abs joint</td><td>20k</td><td>50</td><td>79.6</td><td>33.6</td></tr>
+      <tr><td>abs joint</td><td>20k</td><td>100</td><td>–</td><td>35.3</td></tr>
+    </tbody>
+  </table>
+  <p class="takeaway">主线的起点取 15k，因为后面多数节点都在 15k 有完整的 clean 和 randomized 结果。20k 时 randomized 没有提升，说明继续训练不能弥补这个差距。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b0-1">
+  <div class="sec-head"><span class="tag branch">B0.1</span><h2>支线：动作空间</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n0">N0</a><span class="sep">|</span><b>改动</b> 动作空间换成 relative joint / absolute EE / relative EE（<code>cd07c1d</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们比较了四种动作空间，其他设置都和 N0 相同。</p>
+  <table>
+    <thead><tr><th>动作空间</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>Absolute Joint（N0）</td><td>15k</td><td>100</td><td>77.1<span class="fn" title="草稿为 76.6">†</span></td><td>36.2</td></tr>
+      <tr><td>Relative Joint</td><td>15k</td><td>100</td><td>77.0</td><td>36.7<span class="fn" title="草稿为 34.7；20k 时为 33.8">†</span><span class="d up">+0.5</span></td></tr>
+      <tr><td>Absolute EE</td><td>15k</td><td>100</td><td>76.6</td><td>27.4<span class="d down">−8.8</span></td></tr>
+      <tr><td>Relative EE</td><td>15k</td><td>100</td><td>74.0</td><td>24.1<span class="fn" title="草稿为 24.8">†</span><span class="d down">−12.1</span></td></tr>
+    </tbody>
+  </table>
+  <p>Joint 和 EE 之间差距明显：EE 在 randomized 上低 9–12pp。abs joint 和 rel joint 的差异落在噪声范围内（15k 时 rel 高 0.5，20k 时 rel 为 33.8，abs 为 35.3）。</p>
+  <p class="takeaway">保留 absolute joint。这也是 LingBot-VLA 2.0 官方用 clean + randomized 数据后训练时采用的配置。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp main" id="n1">
+  <div class="sec-head"><span class="tag main">N1</span><h2>Qwen-SAM 前景掩码 v1：替换第三视角输入</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n0">N0</a><span class="sep">|</span><b>改动</b> cam_high 换成 SAM 掩码图，训练和评测都做同样处理（<code>62ef792</code>、<code>d1c21ee</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们用 prompt 让 Qwen3.8-27B 根据任务指令和首帧图像列出当前视角下的关键物体，再把物体名和第三视角图像一起送进 SAM3，得到目标物体的分割 mask。mask 外的像素乘 0.1 压暗，mask 边缘描 2px 白边，处理后的图像替换原始 cam_high。两个腕部相机不变。评测时对每个 VLA 查询帧在线跑同样的流程。</p>
+  <p>每个 episode 可以生成多份 mask（指令改写或物体集合不同）。<code>single</code> 只用一份，<code>multi</code> 每个样本随机抽一份。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N0 原始 cam_high</td><td>15k</td><td>100</td><td>77.1</td><td>36.2</td></tr>
+      <tr><td>SAM single</td><td>15k</td><td>50</td><td>76.6</td><td>45.1<span class="d up">+8.9</span></td></tr>
+      <tr class="best"><td>SAM multi</td><td>15k</td><td>50</td><td>78.0</td><td>47.8<span class="d up">+11.6</span></td></tr>
+      <tr><td>SAM multi</td><td>20k</td><td>50</td><td>79.8</td><td>47.5</td></tr>
+    </tbody>
+  </table>
+  <p>这是所有改动里收益最大的一步：randomized 提升 11.6pp，clean 基本不变。randomized 场景多出的是背景纹理、光照和干扰物，压暗 mask 外的区域后，policy 在两种场景下看到的主视角更接近。multi 比 single 高 2.7pp，接近噪声边界，但 15k 的两次 single 评测（45.1 和 44.0）都低于 multi。</p>
+  <p class="takeaway">进入主线，采用 multi。代价是评测时要额外运行 27B 的 Qwen 和 SAM3。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b1-1">
+  <div class="sec-head"><span class="tag branch">B1.1</span><h2>支线：动作块执行长度</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n1">N1</a>（20k）<span class="sep">|</span><b>改动</b> 推理时每个 chunk 只执行前 ul 步（<code>USE_LENGTH</code>，<code>30cd03f</code>），chunk_size 固定为 50<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>推理长 chunk、只执行前几步是常见的推理时优化。这组实验不需要重新训练，用的是同一个 N1 checkpoint。</p>
+  <table>
+    <thead><tr><th>ul</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>50（N1）</td><td>20k</td><td>50</td><td>79.8</td><td>47.5</td></tr>
+      <tr><td>25</td><td>20k</td><td>50</td><td>78.5</td><td>45.8<span class="d down">−1.7</span></td></tr>
+      <tr><td>10</td><td>20k</td><td>50</td><td>68.5</td><td>23.4<span class="fn" title="草稿为 23.6">†</span><span class="d down">−24.1</span></td></tr>
+    </tbody>
+  </table>
+  <p>不用 SAM 的 N0（20k）趋势相同：ul 为 50 / 25 / 10 时，randomized 分别是 33.6 / 33.9 / 18.9。整体上执行长度越短，成功率越低。但单个任务的最佳执行长度并不相同，下面的数字来自草稿 blog.md：</p>
+  <table>
+    <thead><tr><th>最佳 ul</th><th>场景 &amp; 任务</th><th>ul=50</th><th>ul=25</th><th>ul=10</th></tr></thead>
+    <tbody>
+      <tr><td>10</td><td>clean &amp; blocks_ranking_size</td><td>43</td><td>61</td><td><b>80</b></td></tr>
+      <tr><td>10</td><td>randomized &amp; pick_dual_bottles</td><td>60</td><td>70</td><td><b>84</b></td></tr>
+      <tr><td>25</td><td>clean &amp; handover_block</td><td>88</td><td><b>95</b></td><td>3</td></tr>
+      <tr><td>25</td><td>randomized &amp; stack_blocks_two</td><td>76</td><td><b>92</b></td><td>39</td></tr>
+      <tr><td>50</td><td>clean &amp; open_microwave</td><td><b>85</b></td><td>44</td><td>11</td></tr>
+      <tr><td>50</td><td>randomized &amp; place_burger_fries</td><td><b>97</b></td><td>92</td><td>17</td></tr>
+    </tbody>
+  </table>
+  <p class="takeaway">保持 ul=50。比赛规则不允许按场景或任务切换推理参数，所以没有继续深入。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp main" id="n2">
+  <div class="sec-head"><span class="tag main">N2</span><h2>Qwen-SAM 前景掩码 v2：VLM 复核</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n1">N1</a><span class="sep">|</span><b>改动</b> 放宽物体召回的 prompt，增加 Qwen 对每个 mask 的是非复核；训练数据和评测都换成 judged 版本（<code>63c6b8a</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们发现 Qwen 虽然不能直接输出 mask，但给定图像和 mask，它能可靠地判断 mask 是否对应目标物体。所以 v2 先放宽召回 prompt，多提一些候选物体，再把每个 mask 连同图像和一个是非问题（"这个位置是 XX 吗"）送回 Qwen 复核，删掉错误的 mask。这样召回率提高了，错误率也降低了。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N1 v1</td><td>15k</td><td>50</td><td>78.0</td><td>47.8</td></tr>
+      <tr class="best"><td>v2，mask 外 ×0.1</td><td>15k</td><td>50</td><td>76.0</td><td>50.8<span class="fn" title="草稿为 80.2 / 49.8，stats 中未找到对应的 run">†</span><span class="d up">+3.0</span></td></tr>
+      <tr><td>v2，mask 外 ×0（全黑）</td><td>15k</td><td>50</td><td>71.1</td><td>46.0<span class="d down">−4.8 vs v2</span></td></tr>
+    </tbody>
+  </table>
+  <p>v2 在 randomized 上提升 3.0pp。mask 外完全涂黑时，clean 下降 4.9pp，randomized 下降 4.8pp，说明 policy 仍然需要一点背景信息，比如桌面边界和机械臂位置。</p>
+  <div class="box warn">这一步同时改了训练数据（judged 掩码）和评测管线（评测时也做复核），两者的贡献没有拆开。要拆开需要补一组"v1 训练 + v2 评测"。</div>
+  <p class="takeaway">进入主线，采用 v2 + mask 外 ×0.1。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b2-1">
+  <div class="sec-head"><span class="tag branch">B2.1</span><h2>支线：SAM 图作为第 4 路输入</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n2">N2</a> 的掩码数据<span class="sep">|</span><b>分支</b> <code>feat/sam-mask-overlay</code> → <code>feat/sam-extra-view</code>（<code>555fb09</code>、<code>3233ca1</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>这条支线想回答：既然 SAM 图有用，能不能保留原始 cam_high，把 SAM 图作为额外的第 4 张图输入，让模型同时看到两者？SAM 图放在最后一个图像槽位，depth/video 的 teacher 和 student 都读原图。我们比较了 3 种位置编码和 2 种 attention mask。</p>
+  <table>
+    <thead><tr><th>pos</th><th>做法</th></tr></thead>
+    <tbody>
+      <tr><td><code>native</code></td><td style="text-align:left;white-space:normal">4 张图一起走 <code>get_rope_index</code>，SAM 图就是普通的第 4 张图，后面语言 token 的 id 顺延</td></tr>
+      <tr><td><code>copy</code></td><td style="text-align:left;white-space:normal">按 3 张图计算 id，再把原始 cam_high 的 (t, h, w) 整块复制给 SAM 图，其余 token 的 id 和 3 图模型一致</td></tr>
+      <tr><td><code>copy_t1</code></td><td style="text-align:left;white-space:normal">同 <code>copy</code>，但 SAM 图的 t 轴 +1，空间上对齐，时间上错开一格</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>attn</th><th>做法</th></tr></thead>
+    <tbody>
+      <tr><td><code>causal</code></td><td style="text-align:left;white-space:normal">不改 mask：SAM 图能看到原图，原图看不到 SAM 图</td></tr>
+      <tr><td><code>pair</code></td><td style="text-align:left;white-space:normal">额外打开原图 → SAM 图方向，两个视角互相可见，各自内部仍是 causal</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>pos, attn</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N2 替换 cam_high</td><td>15k</td><td>50</td><td>76.0</td><td>50.8</td></tr>
+      <tr><td><code>native</code>, <code>causal</code></td><td>15k</td><td>50</td><td>79.2</td><td>41.3<span class="d down">−9.5</span></td></tr>
+      <tr><td><code>copy</code>, <code>causal</code></td><td>15k</td><td>50</td><td>77.9</td><td>41.8<span class="fn" title="草稿为 41.5，为 20k 的结果">†</span><span class="d down">−9.0</span></td></tr>
+      <tr><td><code>copy_t1</code>, <code>causal</code></td><td>15k</td><td>50</td><td>78.5</td><td>42.6<span class="d down">−8.2</span></td></tr>
+      <tr><td><code>native</code>, <code>pair</code></td><td>15k</td><td>50</td><td>77.0</td><td>38.8<span class="d down">−12.0</span></td></tr>
+      <tr><td><code>copy</code>, <code>pair</code></td><td>15k</td><td>50</td><td>77.6</td><td>38.6<span class="d down">−12.2</span></td></tr>
+      <tr><td><code>copy_t1</code>, <code>pair</code></td><td>15k</td><td>50</td><td>–</td><td>37.6<span class="d down">−13.2</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note">20k 的 randomized：native/causal 39.8，copy/causal 41.5。copy_t1/pair 的 clean 评测没有跑完。</p>
+  <p>六组都比 N0 高（36.2 → 37.6–42.6），但都比 N2 直接替换低 8–13pp。位置编码之间的差异在噪声范围内。attention mask 的影响比较一致：<code>pair</code> 比 <code>causal</code> 低 2.5–5pp，和 VLM 预训练时的因果 mask 越一致越好。</p>
+  <p class="takeaway">没有进入主线。原图里的干扰物仍然在输入中，SAM 图只是提示。让 policy 看不到干扰物比提示它注意哪里更有效。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b2-2">
+  <div class="sec-head"><span class="tag branch">B2.2</span><h2>支线：MetaQuery 重建 SAM 掩码</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n2">N2</a> 的掩码数据<span class="sep">|</span><b>分支</b> <code>feat/sam-mask-overlay</code> → <code>feat/sam-query</code>（<code>597a83e</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>这组实验不改 VLM 的输入图像，三路相机都用原图。我们在原有的 depth/video query 前面再加一组可学习 query，在 causal mask 下读取前面的 VLM token，用 cam_high 的 SAM 掩码监督。动作专家能看到这组 query，所以推理时保留它，只有 head 和 loss 仅在训练时使用。代码实现了三个变体：A（Resampler + BCE/Dice），B（MaskFormer 式点积，32×32），C（无 head，直接约束 query 的 attention 分布）。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N2 替换 cam_high</td><td>15k</td><td>50</td><td>76.0</td><td>50.8</td></tr>
+      <tr class="ref"><td>N0 原图（无 SAM）</td><td>15k</td><td>100</td><td>77.1</td><td>36.2</td></tr>
+      <tr><td>MetaQuery B</td><td>15k</td><td>50</td><td>78.3<span class="fn" title="stats 中未找到 clean 的结果，取自草稿">†</span></td><td>37.9<span class="d down">−12.9</span></td></tr>
+    </tbody>
+  </table>
+  <p>只比 N0 高 1.7pp，在噪声范围内。变体 A 和 C 没有完整的评测结果。</p>
+  <p class="takeaway">没有进入主线。把掩码作为辅助监督，几乎没有转化为 randomized 上的泛化能力。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp main" id="n3">
+  <div class="sec-head"><span class="tag main">N3</span><h2>Depth / Video 蒸馏的 teacher 改看原图</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n2">N2</a><span class="sep">|</span><b>分支</b> <code>feat/sam-raw-teacher</code>（<code>a730cc1</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>从 N1 开始，policy 输入的 cam_high 换成了 SAM 掩码图，但 LingBot-VLA 2.0 自带的 depth/video 蒸馏分支仍然把同一张掩码图送进 teacher。teacher 是在自然图像上训练的，压暗加描边的图像会让它输出的特征偏离正常分布。修复方法：policy 仍然看掩码图，teacher 改为读取同一时间戳的原始 cam_high，两张图共用同一组数据增强参数。另外，depth/video 的 loss 按每个 patch 的 SAM 前景比例加权（<code>mask_weighted_loss</code>）。</p>
+  <table>
+    <thead><tr><th>teacher 输入</th><th>mask 外</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>掩码图（N2）</td><td>×0.1</td><td>15k</td><td>50</td><td>76.0</td><td>50.8</td></tr>
+      <tr class="best"><td>原图</td><td>×0.1</td><td>15k</td><td>50</td><td>76.5</td><td>53.1<span class="d up">+2.3</span></td></tr>
+      <tr class="ref"><td>掩码图</td><td>×0</td><td>15k</td><td>50</td><td>71.1</td><td>46.0</td></tr>
+      <tr><td>原图</td><td>×0</td><td>15k</td><td>50</td><td>71.2</td><td>49.9<span class="d up">+3.9</span></td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>N3 不同 step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr><td>20k</td><td>50</td><td>79.9 / 80.2</td><td>53.4 / 51.5（两次评测）</td></tr>
+      <tr><td>25k</td><td>50</td><td>80.7</td><td>53.0</td></tr>
+      <tr><td>30k</td><td>50</td><td>80.9</td><td>54.2</td></tr>
+    </tbody>
+  </table>
+  <p>两种 mask 强度下都有提升（+2.3 和 +3.9），方向一致。所以虽然单看一组只比噪声略大，我们认为这个提升是真实的。</p>
+  <p class="takeaway">进入主线。训练时 policy 和 teacher 读取不同的图像，推理时没有 teacher，所以推理流程不变。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b3-1">
+  <div class="sec-head"><span class="tag branch">B3.1</span><h2>支线：全局学习率</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n3">N3</a><span class="sep">|</span><b>改动</b> 只改学习率调度，max_steps 设为 30k<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>官方调度是 cosine，在 50k step 内从 1.0e-4 衰减到 5.0e-5。我们观察到 30k 之后几乎没有提升，所以把 max_steps 设为 30k，试了两组：lr_1 在 30k 内从 1.0e-4 衰减到 1e-6，lr_2 在 30k 内从 2e-5 衰减到 2e-7。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N3 官方调度</td><td>15k</td><td>50</td><td>76.5</td><td>53.1</td></tr>
+      <tr><td>lr_1</td><td>15k</td><td>50</td><td>77.0</td><td>52.1<span class="d down">−1.0</span></td></tr>
+      <tr><td>lr_2</td><td>15k</td><td>50</td><td>–</td><td>19.5<span class="d down">−33.6</span></td></tr>
+      <tr class="ref"><td>N3 官方调度</td><td>25k</td><td>50</td><td>80.7</td><td>53.0</td></tr>
+      <tr><td>lr_1</td><td>25k</td><td>50</td><td>78.4</td><td>50.6<span class="d down">−2.4</span></td></tr>
+      <tr class="ref"><td>N3 官方调度</td><td>30k</td><td>50</td><td>80.9</td><td>54.2</td></tr>
+      <tr><td>lr_1</td><td>30k</td><td>50</td><td>78.6</td><td>51.8<span class="d down">−2.4</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note">草稿里这张表的 baseline 写的是 76.6 / 50.6，和 N3 的任何一次评测都对不上。<span class="fn">†</span></p>
+  <p>更快衰减到 0（lr_1）在每个 step 上都略差。整体降低 5 倍（lr_2）后，15k 时 randomized 只有 19.5，模型远没有收敛。</p>
+  <p class="takeaway">没有进入主线。改全局学习率没有收益，于是转向按模块设置学习率（<a href="#n4">N4</a>）。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b3-2">
+  <div class="sec-head"><span class="tag branch">B3.2</span><h2>支线：深度图作为第 4 路输入</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n3">N3</a><span class="sep">|</span><b>分支</b> <code>feat/depth-view</code>（<code>66ca08a</code>、<code>524ee4f</code>、<code>7236fe7</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们在 N3 的基础上，把 Lingbot-Depth 的 refined depth 转成 inverse depth 的 turbo 伪彩色图，作为第 4 张图输入。参考 SpatialRGPT（2406.01584），深度图共享 ViT blocks，但使用单独的 merger（<code>sepconn</code>），初始化时从 RGB 的 merger 复制。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N3</td><td>15k</td><td>50</td><td>76.5</td><td>53.1</td></tr>
+      <tr><td>+ depth map (sepconn)</td><td>15k</td><td>50</td><td>77.7</td><td>48.2<span class="d down">−4.9</span></td></tr>
+      <tr class="ref"><td>N3</td><td>20k</td><td>50</td><td>79.9</td><td>53.4</td></tr>
+      <tr><td>+ depth map (sepconn)</td><td>20k</td><td>50</td><td>80.6</td><td>49.8<span class="d down">−3.6</span></td></tr>
+    </tbody>
+  </table>
+  <p class="takeaway">没有进入主线。clean 略高，randomized 在两个 step 都低 3.6–4.9pp。和 <a href="#b2-1">B2.1</a> 一样，额外加一路输入会损害泛化。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp wip" id="b3-3">
+  <div class="sec-head"><span class="tag wip">B3.3</span><h2>支线（WIP）：Dual-stream 辅助块</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n3">N3</a> 的 teacher 设置<span class="sep">|</span><b>分支</b> <code>feat/sam-dual-stream</code>（<code>f85066c</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>N3 里的 student 从掩码图预测原图的特征，属于跨视图监督。Dual-stream 想改成同视图监督：把原始 cam_high 作为一个和 policy 隔离的辅助块追加在 prefix 后面，depth/video head 只读这个辅助块，policy 和动作专家都看不到它。推理时去掉辅助块，prefix 里也不再有 task token。</p>
+  <p>fp32 检查发现，只要辅助块存在，policy 行的输出就会整体偏移约 0.05，所以训练和推理之间有偏差。这个问题还没修复，因此没有做评测。</p>
+  <p class="takeaway">放在未来工作。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp main" id="n4">
+  <div class="sec-head"><span class="tag main">N4</span><h2>分模块学习率</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n3">N3</a><span class="sep">|</span><b>分支</b> <code>feat/module-lr</code>（<code>4f8512f</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>默认配置下，LingBot-VLA 2.0 的所有参数用同一个学习率，包括预训练好的 ViT 和 LLM embedding。我们按模块给基础学习率乘一个系数，越靠近预训练表征的模块，学习率越低：</p>
+  <table>
+    <thead><tr><th>模块</th><th>vit</th><th>vit_merger</th><th>llm</th><th>llm_embed</th><th>action_expert</th><th>action_io</th><th>align</th></tr></thead>
+    <tbody><tr><td>倍率</td><td>0.3</td><td>0.5</td><td>0.5</td><td>0（冻结）</td><td>1.0</td><td>1.0</td><td>1.0</td></tr></tbody>
+  </table>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N3</td><td>15k</td><td>50</td><td>76.5</td><td>53.1</td></tr>
+      <tr class="best"><td>modlr</td><td>15k</td><td>50</td><td>78.2</td><td>55.4<span class="d up">+2.3</span></td></tr>
+      <tr class="ref"><td>N3</td><td>20k</td><td>50</td><td>80.2<span class="fn" title="草稿把 80.2 / 52.5 作为 baseline；20k 有两次评测，randomized 为 53.4 和 51.5">†</span></td><td>51.5 / 53.4</td></tr>
+      <tr><td>modlr</td><td>20k</td><td>50</td><td>80.9</td><td>53.8</td></tr>
+      <tr class="ref"><td>N3</td><td>25k</td><td>50</td><td>80.7</td><td>53.0</td></tr>
+      <tr><td>modlr</td><td>25k</td><td>50</td><td>80.6</td><td>55.2<span class="d up">+2.2</span></td></tr>
+      <tr><td>modlr</td><td>35k</td><td>50</td><td>80.5</td><td>56.2</td></tr>
+    </tbody>
+  </table>
+  <p class="note">另有一组 modlr1 在 30k 时为 77.8 / 53.3，配置差异<span class="todo">待补充</span>。</p>
+  <p>15k 和 25k 下 randomized 都高 2.2–2.3pp，clean 持平。</p>
+  <p class="takeaway">进入主线。降低预训练模块的学习率、冻结 embedding，有助于保留预训练表征，提升泛化。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b4-1">
+  <div class="sec-head"><span class="tag branch">B4.1</span><h2>支线：腕部相机颜色扰动</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n4">N4</a><span class="sep">|</span><b>分支</b> <code>feat/module-lr-wrist-aug</code>（<code>dd049d0</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>cam_high 已经由 SAM 处理，剩下的 clean / randomized 差异可能来自腕部相机的光照。我们只对两个腕部相机做训练时的光照和颜色增强，范围按 randomized 场景下腕部图像的统计离线标定：亮度、对比度、饱和度、通道增益、色调、gamma、光场和噪声，p=0.9。两个腕部相机共用一次光照采样。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N4</td><td>15k</td><td>50</td><td>78.2</td><td>55.4</td></tr>
+      <tr><td>+ wrist aug</td><td>15k</td><td>50</td><td>75.2</td><td>54.0<span class="d down">−1.4</span></td></tr>
+      <tr class="ref"><td>N4</td><td>20k</td><td>50</td><td>80.9</td><td>53.8</td></tr>
+      <tr><td>+ wrist aug</td><td>20k</td><td>50</td><td>–</td><td>55.8<span class="d up">+2.0</span></td></tr>
+      <tr class="ref"><td>N4</td><td>25k</td><td>50</td><td>80.6</td><td>55.2</td></tr>
+      <tr><td>+ wrist aug</td><td>25k</td><td>50</td><td>79.4</td><td>54.9<span class="d down">−0.3</span></td></tr>
+    </tbody>
+  </table>
+  <p class="takeaway">没有进入主线。randomized 的差异有正有负，都在噪声范围内，clean 略有下降。randomized 场景剩下的难点可能不在腕部相机的颜色上。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp branch" id="b4-2">
+  <div class="sec-head"><span class="tag branch">B4.2</span><h2>支线：按任务失败率加权采样</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n4">N4</a> 的 25k checkpoint 续训<span class="sep">|</span><b>分支</b> <code>feat/task-weighted-sampling</code>（<code>25aef0d</code>、<code>6e481f2</code>）<span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>我们根据 N4 在 25k 时 clean 和 randomized 的逐任务结果，按平均失败率加 eps=0.05 计算每个任务的采样概率。训练时先按概率抽任务，再在该任务的帧里不放回地采样，从 25k 继续训练。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N4</td><td>35k</td><td>50</td><td>80.5</td><td>56.2</td></tr>
+      <tr><td>task sampling（25k 续训）</td><td>30k</td><td>50</td><td>80.4</td><td>56.7</td></tr>
+      <tr><td>task sampling（25k 续训）</td><td>35k</td><td>50</td><td>79.8</td><td>54.6<span class="d down">−1.6</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note">N4 没有评测 30k，所以 30k 那一行没有同 step 的对照。</p>
+  <p class="takeaway">没有进入主线，结果都在噪声范围内。采样权重是根据评测结果算出来的，即使有提升，也需要单独说明它是否算在测试集上调参。</p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<section class="exp main" id="n5">
+  <div class="sec-head"><span class="tag main">N5</span><h2>action padding 与 LeRobot v3.0 数据集修复（最终版本）</h2></div>
+  <p class="meta"><b>基于</b> <a href="#n4">N4</a>（不含 wrist aug）<span class="sep">|</span><b>分支</b> <code>fix/module-lr-wrist-aug-data-integrity</code>（<code>217b4da</code>），训练时 <code>wrist_augment: false</code><span class="sep">|</span><b>负责人</b> <span class="todo">TODO</span></p>
+  <p>N4 的逐任务结果里，click 类任务的成功率特别低，所以我们回头检查了数据，发现两个问题。</p>
+  <h3>1. padding 出来的 action 也参与了 loss</h3>
+  <p>episode 末尾的 chunk 不足 50 步时，LeRobot 会重复最后一个 action 补齐，并生成 <code>action_is_pad</code>。但 LingBot-VLA（v1 和 v2）计算 loss 时没有使用这个标记，pad 部分也会被监督。全数据集有 22.3% 的样本含 pad，pad 位置占全部 action 位置的 11.2%。click_bell 中这个比例达到 31.8%。模型没有历史记忆，"即将按下"和"已经按下"在单帧上看起来几乎一样，大量"保持静止"的监督会让模型在按下前就停住。修复后 pad 位置不再计入 loss（<code>mask_action_pad: true</code>）。</p>
+  <h3>2. LeRobot v3.0 数据集帧错位</h3>
+  <p>RoboTwin 官方在 Hugging Face 上发布的 LeRobot v3.0 数据集里，部分 episode 的视频段比 parquet 短，末尾几帧会读到下一个 episode 的画面。v2.1 版本没有这个问题。我们用 v2.1 重建了帧对齐的 v3.0 数据（<code>RoboTwin_lerobot_v30_framefixed</code>），并在这份数据上重新生成了 judged SAM 掩码。</p>
+  <table>
+    <thead><tr><th>配置</th><th>Step</th><th>Episodes/任务</th><th>Clean</th><th>Random</th></tr></thead>
+    <tbody>
+      <tr class="ref"><td>N4</td><td>15k</td><td>50</td><td>78.2</td><td>55.4</td></tr>
+      <tr><td>N5</td><td>15k</td><td>50</td><td>–</td><td>53.0<span class="d down">−2.4</span></td></tr>
+      <tr class="ref"><td>N4</td><td>20k</td><td>50</td><td>80.9</td><td>53.8</td></tr>
+      <tr><td>N5</td><td>20k</td><td>50</td><td>78.9</td><td>57.0<span class="d up">+3.2</span></td></tr>
+      <tr class="ref"><td>N4</td><td>25k</td><td>50</td><td>80.6</td><td>55.2</td></tr>
+      <tr><td>N5</td><td>25k</td><td>100</td><td>82.0</td><td>56.2<span class="d up">+1.0</span></td></tr>
+      <tr class="best"><td>N5</td><td>30k</td><td>100</td><td>81.9</td><td>58.2</td></tr>
+      <tr class="ref"><td>N4</td><td>35k</td><td>50</td><td>80.5</td><td>56.2</td></tr>
+      <tr><td>N5</td><td>35k</td><td>100</td><td>80.6</td><td>–</td></tr>
+      <tr><td>N5</td><td>40k</td><td>50</td><td>83.7</td><td>57.7</td></tr>
+    </tbody>
+  </table>
+  <p>按任务看，click 类任务的提升最明显（25k，N4 每任务 50 episode，N5 每任务 100 episode）：</p>
+  <table>
+    <thead><tr><th>任务</th><th>N4 clean</th><th>N5 clean</th><th>N4 random</th><th>N5 random</th></tr></thead>
+    <tbody>
+      <tr><td>click_bell</td><td>12</td><td>72<span class="d up">+60</span></td><td>22</td><td>62<span class="d up">+40</span></td></tr>
+      <tr><td>click_alarmclock</td><td>58</td><td>85<span class="d up">+27</span></td><td>6</td><td>40<span class="d up">+34</span></td></tr>
+      <tr><td>press_stapler</td><td>86</td><td>84</td><td>60</td><td>72<span class="d up">+12</span></td></tr>
+      <tr><td>turn_switch</td><td>50</td><td>51</td><td>22</td><td>19</td></tr>
+    </tbody>
+  </table>
+  <p>15k 时 N5 比 N4 低，20k 之后稳定反超。总体上 randomized 提高约 2pp，clean 在 40k 时达到 83.7，是所有实验里最高的。click_bell 和 click_alarmclock 的大幅提升和 padding 问题的解释一致。</p>
+  <div class="box warn">两项修复是一起加入的，没有单独消融。N5 的 25k 和 30k 评测用的是每任务 100 episode，和 N4 的 50 episode 不完全可比。</div>
+  <p class="takeaway">进入主线，这就是最终版本。草稿中的"before 80.9 / 55.4"对应的是 N4 在两个不同 step 的结果（20k clean，15k random）。<span class="fn">†</span></p>
+  <a class="back" href="#tree">↑ 回到路线图</a>
+</section>
+
+<hr>
+
+<h2 id="discussion">讨论</h2>
+<p>主线上进入的改动有一个共同点：模型结构不变，改的是模型看到的东西和训练方式。N1/N2 改变输入图像；N3 让 teacher 看到它熟悉的自然图像；N4 降低预训练模块的学习率；N5 修复监督信号。没有带来提升的支线大多在动模型结构：多加一路图像（B2.1、B3.2），或者多加一组 query（B2.2）。我们的理解是，在只有 clean 数据的后训练中，和预训练时的输入分布、注意力结构越一致，保留下来的泛化能力越多。<span class="todo">TODO：展开</span></p>
+
+<h2 id="limitations">局限与未来工作</h2>
+<ul>
+  <li>每个配置只训练了一个 seed。重复评测的差异约 2pp，多数单步提升也在 2–3pp。</li>
+  <li>最好的 step 是根据测试集结果选的，最终数字偏乐观。</li>
+  <li>N2 同时改了训练数据和评测管线；N5 的两项修复没有单独消融。</li>
+  <li>评测时需要额外运行 27B Qwen 和 SAM3，推理成本高。</li>
+  <li>只在仿真中验证过。</li>
+  <li>Dual-stream（<a href="#b3-3">B3.3</a>）的训练/推理偏差尚未修复。</li>
+</ul>
+
+<hr>
+
+<h2 id="appendix">附录</h2>
+<h3>A. 逐任务结果</h3><p><span class="todo">TODO</span></p>
+<h3>B. Prompt 模板</h3><p><span class="todo">TODO</span></p>
+<h3>C. 完整训练超参</h3><p><span class="todo">TODO</span></p>
+
+<h3 id="discrepancy">D. 与草稿 blog.md 不一致的数字</h3>
+<p>页面上的数字都按 <code>VLABenchmarkResult/*/stats*.txt</code> 重新计算过（成功数之和 / 总 episode 数）。下面是和草稿不一致的地方，定稿前需要确认：</p>
+<table>
+  <thead><tr><th>位置</th><th>草稿</th><th>stats</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>§4 动作空间 abs joint clean</td><td>76.6</td><td>77.1</td><td>76.6 是 abs EE 的 clean</td></tr>
+    <tr><td>§4 动作空间 rel joint random</td><td>34.7</td><td>36.7 (15k) / 33.8 (20k)</td><td>没有找到 34.7 对应的 run</td></tr>
+    <tr><td>§4 动作空间 rel EE random</td><td>24.8</td><td>24.1</td><td></td></tr>
+    <tr><td>§4 学习率 baseline</td><td>76.6 / 50.6</td><td>N3 15k：76.5 / 53.1</td><td>50.6 是 lr_1 25k 的 random</td></tr>
+    <tr><td>§4 分模块学习率 baseline</td><td>80.2 / 52.5</td><td>N3 20k：80.2 / 51.5 或 53.4</td><td>52.5 可能是两次评测的平均</td></tr>
+    <tr><td>§4 执行长度 ul=10 random</td><td>23.6</td><td>23.4</td><td></td></tr>
+    <tr><td>§5.1 copy/causal random</td><td>41.5</td><td>41.8 (15k) / 41.5 (20k)</td><td>其余 5 组都是 15k</td></tr>
+    <tr><td>§5.2 MetaQuery clean</td><td>78.3</td><td>未找到</td><td>只有 B 变体 15k 的 randomized</td></tr>
+    <tr><td>§6.2 Qwen-SAM v2</td><td>80.2 / 49.8</td><td>15k：76.0 / 50.8</td><td>80.2 是 N3 20k 的 clean</td></tr>
+    <tr><td>§7 teacher 修复</td><td>两段重复，random 52.5 / 51.5</td><td>15k：50.8 → 53.1</td><td>草稿用的是 20k 的两次评测</td></tr>
+    <tr><td>§7 数据修复 before</td><td>80.9 / 55.4</td><td>N4 20k：80.9 / 53.8；15k：78.2 / 55.4</td><td>来自不同 step</td></tr>
+  </tbody>
+</table>
+
+</main>
+</body>
+</html>

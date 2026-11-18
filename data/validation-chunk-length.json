@@ -1,0 +1,66 @@
+{
+  "rows": [
+    [
+      "blocks_ranking_size",
+      "Clean",
+      "42",
+      "62",
+      "80",
+      "10 步"
+    ],
+    [
+      "pick_dual_bottles",
+      "Randomized",
+      "60",
+      "70",
+      "84",
+      "10 步"
+    ],
+    [
+      "blocks_ranking_size",
+      "Randomized",
+      "42",
+      "58",
+      "20",
+      "25 步"
+    ],
+    [
+      "stack_blocks_two",
+      "Randomized",
+      "82",
+      "92",
+      "40",
+      "25 步"
+    ],
+    [
+      "open_microwave",
+      "Clean",
+      "84",
+      "44",
+      "8",
+      "50 步"
+    ],
+    [
+      "place_container_plate",
+      "Randomized",
+      "82",
+      "76",
+      "16",
+      "50 步"
+    ]
+  ],
+  "matchedUnderlyingStatistics": true,
+  "widths": [
+    {
+      "viewport": 1440,
+      "documentWidth": 1440
+    },
+    {
+      "viewport": 390,
+      "documentWidth": 390
+    }
+  ],
+  "jsErrors": [],
+  "brokenAnchors": [],
+  "copiesIdentical": true
+}
