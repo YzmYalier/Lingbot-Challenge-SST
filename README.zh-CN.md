@@ -3,7 +3,7 @@
 # VLA SFT in Practice - 🏆 总决赛二等奖 · Grand Final — Second Prize
 
 [![Blog](https://img.shields.io/badge/Blog-3B82F6?style=flat-square&logo=rss&logoColor=white)](https://yzmyalier.github.io/Lingbot-Challenge-SST/)
-![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
+[![Datasets](https://img.shields.io/badge/Datasets-Hugging%20Face-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST)
 ![Checkpoints — Coming soon](https://img.shields.io/badge/Checkpoints-Coming%20soon-F59E0B?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 
 **Robbyant 具身智能挑战赛技术报告配套代码**
@@ -19,10 +19,10 @@
 | 资源 | 状态 |
 |---|---|
 | 项目主页与技术报告 | [Blog](https://yzmyalier.github.io/Lingbot-Challenge-SST/) |
-| 修复后的 LeRobot 数据与预计算 SAM mask | 全量校验和上传完成后补充下载链接 |
+| 修复后的 LeRobot 数据与预计算 SAM mask | [Hugging Face 数据集](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST) |
 | 训练后的 checkpoint | 单独发布后补充链接 |
 
-完整的 Qwen–SAM3 预处理非常耗时。因此，我们将配套发布修复后的 LeRobot 数据、预计算 SAM mask 和渲染后的训练视频，方便直接开始训练，避免重复生成 mask。使用这些预处理数据训练时，无须运行 Qwen 或 SAM3 服务。
+完整的 Qwen–SAM3 预处理非常耗时。因此，我们已在 [Hugging Face](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST) 发布修复后的 LeRobot 数据、预计算 SAM mask 和渲染后的训练视频，方便直接开始训练，避免重复生成 mask。使用这些预处理数据训练时，无须运行 Qwen 或 SAM3 服务。
 
 ## 方法概览
 
@@ -83,7 +83,9 @@ python3 tools/configure.py \
 
 ### 1. 准备配套数据集
 
-数据发布链接可用后，下载修复后的 raw 数据和 SAM 数据，并放入[数据集](#数据集)一节约定的位置。默认 raw teacher 训练配方需要同时使用这两份数据。
+从 [yydsyangsdyy/Lingbot-Challenge-SST](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST) 下载两份配套数据。默认 raw teacher 训练配方需要同时使用修复后的 raw 图像和 SAM 数据。
+
+使用这条训练流程时，先按前文配置 LingBot-VLA 环境；下载和解包还需要 [`hf` CLI](https://huggingface.co/docs/huggingface_hub/en/guides/cli) 及支持 Zstandard 的 GNU tar。公开数据集无须登录即可下载。
 
 仓库已附轨迹映射和原始指令文件，可以执行：
 
@@ -91,7 +93,32 @@ python3 tools/configure.py \
 bash prepare_data_inputs.sh --check
 ```
 
-两份数据放置完成后，将 SAM 元数据中的原始图像引用更新为配置中的本地位置：
+对于新检出的仓库，下载已验证的发布版本，核对全部校验和，再完整解包两份数据。以下命令使用 `base.json` 中默认的数据集目录名及共同父目录，下载文件和缓存均留在仓库内。如果已经准备好两份完整数据，可以跳过此代码块，直接执行后面的路径迁移命令。
+
+```bash
+(
+  set -e
+  export HF_HOME="$(python3 -B -c 'from submit_paths import path; print(path("runtime") / "hf-dataset-download")')"
+  SST_RELEASE_DIR="$(python3 -B -c 'from submit_paths import path; print(path("raw").parent.parent / "release")')"
+  SST_DATA_DIR="$(python3 -B -c 'from submit_paths import path; print(path("raw").parent)')"
+
+  hf download yydsyangsdyy/Lingbot-Challenge-SST \
+    --repo-type dataset \
+    --revision 7111c726e5f45e045e5ead62816a1d175a826a9e \
+    --local-dir "$SST_RELEASE_DIR"
+  (cd "$SST_RELEASE_DIR" && sha256sum -c SHA256SUMS)
+
+  mkdir -p "$SST_DATA_DIR"
+  tar --zstd -xf "$SST_RELEASE_DIR/RoboTwin_lerobot_v30_framefixed.tar.zst" \
+    -C "$SST_DATA_DIR"
+  tar --zstd -xf "$SST_RELEASE_DIR/RoboTwin_lerobot_v30_framefixed_sam_judged_multi_outline0.1_w2.tar.zst" \
+    -C "$SST_DATA_DIR"
+)
+```
+
+压缩包保留了共享渲染视频的指令槽之间的硬链接关系。请在支持硬链接的文件系统上完整解包每个压缩包，并保留下方所示的数据集目录名。
+
+解包或移动两份配套数据后，将 SAM 元数据中的原始图像引用更新为配置中的本地位置。这一步会有意改写 `meta/sam_info.json`；逐文件清单记录的是路径迁移前的内容。
 
 ```bash
 python3 tools/configure.py --relocate
@@ -133,12 +160,14 @@ bash train.sh
 
 ## 数据集
 
-数据发布包含两份配套数据集：
+两份配套数据集已发布到 [Hugging Face](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST)。下方下载链接和前面的快速开始命令均固定到已验证的发布版本 `7111c726e5f45e045e5ead62816a1d175a826a9e`。
 
-| 数据集 | 内容 | 配置字段 |
-|---|---|---|
-| 修复后的 LeRobot v3.0 raw | 完整相机视频、数值 state/action 数据及修复后的元数据 | `paths.raw` |
-| Judged SAM multi | 渲染后的顶部视图、无损二值 mask、指令到 mask 的索引、judge 记录和配套训练元数据 | `paths.sam_output` |
+| 数据集 | 下载（`.tar.zst`） | 内容 | 配置字段 |
+|---|---|---|---|
+| 修复后的 LeRobot v3.0 raw | [2.19 GiB](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/resolve/7111c726e5f45e045e5ead62816a1d175a826a9e/RoboTwin_lerobot_v30_framefixed.tar.zst?download=true) | 完整相机视频、数值 state/action 数据及修复后的元数据 | `paths.raw` |
+| Judged SAM multi | [6.14 GiB](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/resolve/7111c726e5f45e045e5ead62816a1d175a826a9e/RoboTwin_lerobot_v30_framefixed_sam_judged_multi_outline0.1_w2.tar.zst?download=true) | 渲染后的顶部视图、无损二值 mask、指令到 mask 的索引、judge 记录和配套训练元数据 | `paths.sam_output` |
+
+两个压缩包合计 **8.33 GiB**。发布内容还包括 [SHA-256 校验和](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/blob/7111c726e5f45e045e5ead62816a1d175a826a9e/SHA256SUMS)、逐文件清单和[验证摘要](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/blob/7111c726e5f45e045e5ead62816a1d175a826a9e/validation_summary.json)。已核对完整解包内容的文件哈希和硬链接分组，并在迁移目录后，通过 CPU 加载器读取首尾帧样本及 raw teacher 图像。
 
 默认目录结构：
 

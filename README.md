@@ -3,7 +3,7 @@
 # VLA SFT in Practice - 🏆 Grand Final — Second Prize
 
 [![Blog](https://img.shields.io/badge/Blog-3B82F6?style=flat-square&logo=rss&logoColor=white)](https://yzmyalier.github.io/Lingbot-Challenge-SST/)
-![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
+[![Datasets](https://img.shields.io/badge/Datasets-Hugging%20Face-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST)
 ![Checkpoints — Coming soon](https://img.shields.io/badge/Checkpoints-Coming%20soon-F59E0B?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
 
 **A Competition Report for the Robbyant Embodied AI Challenge**
@@ -19,10 +19,10 @@ This repository contains the data processing, training, and evaluation code for 
 | Resource | Status |
 |---|---|
 | Project page and technical report | [Blog](https://yzmyalier.github.io/Lingbot-Challenge-SST/) |
-| Repaired LeRobot data and precomputed SAM masks | Download links to be added after full validation and upload |
+| Repaired LeRobot data and precomputed SAM masks | [Hugging Face dataset](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST) |
 | Trained checkpoints | Release link to be added separately |
 
-Full Qwen–SAM3 preprocessing is time-consuming. We are releasing the repaired LeRobot data together with precomputed SAM masks and rendered training videos so that users can start training without repeating mask generation. Training with these preprocessed data does not require running the Qwen or SAM3 services.
+Full Qwen–SAM3 preprocessing is time-consuming. We provide the repaired LeRobot data together with precomputed SAM masks and rendered training videos on [Hugging Face](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST) so that users can start training without repeating mask generation. Training with these preprocessed data does not require running the Qwen or SAM3 services.
 
 ## Method
 
@@ -83,7 +83,9 @@ The commands below assume that you are in the repository root.
 
 ### 1. Prepare the paired datasets
 
-After the dataset release links are available, download both the repaired raw dataset and the SAM dataset into the locations described in [Datasets](#datasets). Both are required by the default raw-teacher training recipe.
+Download both paired datasets from [yydsyangsdyy/Lingbot-Challenge-SST](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST). The default raw-teacher training recipe requires both the repaired raw images and the SAM data.
+
+For this training workflow, configure the LingBot-VLA environment as described above. Install the [`hf` CLI](https://huggingface.co/docs/huggingface_hub/en/guides/cli) and GNU tar with Zstandard support for downloading and extracting the release. The public dataset does not require authentication.
 
 The repository includes the episode mapping and original instruction files. Check them with:
 
@@ -91,7 +93,32 @@ The repository includes the episode mapping and original instruction files. Chec
 bash prepare_data_inputs.sh --check
 ```
 
-After placing both datasets, update the raw-image reference in the SAM metadata to the configured local location:
+For a fresh checkout, download the validated release, verify all checksums, and extract both complete archives. The commands use the default dataset directory names and shared parent configured in `base.json`; download files and caches stay inside the repository. If you already have both complete datasets, skip this block and run the relocation command below.
+
+```bash
+(
+  set -e
+  export HF_HOME="$(python3 -B -c 'from submit_paths import path; print(path("runtime") / "hf-dataset-download")')"
+  SST_RELEASE_DIR="$(python3 -B -c 'from submit_paths import path; print(path("raw").parent.parent / "release")')"
+  SST_DATA_DIR="$(python3 -B -c 'from submit_paths import path; print(path("raw").parent)')"
+
+  hf download yydsyangsdyy/Lingbot-Challenge-SST \
+    --repo-type dataset \
+    --revision 7111c726e5f45e045e5ead62816a1d175a826a9e \
+    --local-dir "$SST_RELEASE_DIR"
+  (cd "$SST_RELEASE_DIR" && sha256sum -c SHA256SUMS)
+
+  mkdir -p "$SST_DATA_DIR"
+  tar --zstd -xf "$SST_RELEASE_DIR/RoboTwin_lerobot_v30_framefixed.tar.zst" \
+    -C "$SST_DATA_DIR"
+  tar --zstd -xf "$SST_RELEASE_DIR/RoboTwin_lerobot_v30_framefixed_sam_judged_multi_outline0.1_w2.tar.zst" \
+    -C "$SST_DATA_DIR"
+)
+```
+
+The archives preserve hard links between instruction slots that share a rendered video. Extract each entire archive on a filesystem supporting hard links and keep the dataset directory names shown below.
+
+After extraction or moving the paired datasets, update the raw-image reference in the SAM metadata to the configured local location. This intentionally rewrites `meta/sam_info.json`; the per-file manifests describe the contents before relocation.
 
 ```bash
 python3 tools/configure.py --relocate
@@ -133,12 +160,14 @@ Training writes the experiment configuration and checkpoints under `paths.traini
 
 ## Datasets
 
-The release consists of two paired datasets:
+The paired datasets are available on [Hugging Face](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST). The download links and Quick start commands use the validated release revision `7111c726e5f45e045e5ead62816a1d175a826a9e`.
 
-| Dataset | Contents | Configuration key |
-|---|---|---|
-| Repaired LeRobot v3.0 raw | Complete camera videos, numerical state/action data, and repaired metadata | `paths.raw` |
-| Judged SAM multi | Rendered top-camera views, lossless binary masks, instruction-to-mask indices, judge records, and matching training metadata | `paths.sam_output` |
+| Dataset | Download (`.tar.zst`) | Contents | Configuration key |
+|---|---|---|---|
+| Repaired LeRobot v3.0 raw | [2.19 GiB](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/resolve/7111c726e5f45e045e5ead62816a1d175a826a9e/RoboTwin_lerobot_v30_framefixed.tar.zst?download=true) | Complete camera videos, numerical state/action data, and repaired metadata | `paths.raw` |
+| Judged SAM multi | [6.14 GiB](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/resolve/7111c726e5f45e045e5ead62816a1d175a826a9e/RoboTwin_lerobot_v30_framefixed_sam_judged_multi_outline0.1_w2.tar.zst?download=true) | Rendered top-camera views, lossless binary masks, instruction-to-mask indices, judge records, and matching training metadata | `paths.sam_output` |
+
+The two archives total **8.33 GiB**. The release also includes [SHA-256 checksums](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/blob/7111c726e5f45e045e5ead62816a1d175a826a9e/SHA256SUMS), file manifests, and a [validation summary](https://huggingface.co/datasets/yydsyangsdyy/Lingbot-Challenge-SST/blob/7111c726e5f45e045e5ead62816a1d175a826a9e/validation_summary.json). Full extraction was checked against the file hashes and hard-link groups, followed by relocation and CPU loading of first/last-frame samples with the raw teacher view.
 
 Default layout:
 
