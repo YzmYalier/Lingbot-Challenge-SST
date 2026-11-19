@@ -229,6 +229,8 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 .visitor-map img, .visitor-map iframe, .visitor-map canvas, .visitor-map svg { max-width: 100%; }
 .visitor-map img { height: auto; }
 .visitor-caption { margin-top: 16px; color: var(--muted); }
+.citation-code { margin: 0; padding: 20px; border: 1px solid var(--line); border-radius: 5px; background: #eeeee9; line-height: 1.7; break-inside: avoid; }
+.citation-code code { display: block; padding: 0; background: none; border-radius: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 footer { border-top: 1px solid var(--line); padding: 32px 0 45px; display: flex; justify-content: flex-end; align-items: center; gap: 24px; }
 .footer-right button { border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; color: var(--muted); }
 .noscript { background: var(--warm); padding: 20px; text-align: center; }
