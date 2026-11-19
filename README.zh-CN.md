@@ -1,4 +1,6 @@
-# VLA SFT in Practice
+![Robbyant 具身智能挑战赛](docs/assets/robbyant-challenge-banner.jpg)
+
+# VLA SFT in Practice - 🏆 总决赛二等奖 · Grand Final — Second Prize
 
 [![Blog](https://img.shields.io/badge/Blog-3B82F6?style=flat-square&logo=rss&logoColor=white)](https://yzmyalier.github.io/Lingbot-Challenge-SST/)
 ![Datasets — Coming soon](https://img.shields.io/badge/Datasets-Coming%20soon-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=334155)
